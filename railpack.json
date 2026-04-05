@@ -1,3 +1,6 @@
 {
-  "providers": ["python"]
+  "providers": ["python"],
+  "deploy": {
+    "startCmd": "python server.py"
+  }
 }
