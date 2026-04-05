@@ -1,5 +1,5 @@
 {
-  "providers": ["python"],
+  "$schema": "https://schema.railpack.com/railpack-config.schema.json",
   "deploy": {
     "startCmd": "python server.py"
   }
