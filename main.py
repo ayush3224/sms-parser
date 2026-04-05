@@ -80,11 +80,11 @@ def _on_storage_warning(message: str) -> None:
 # ---------------------------------------------------------------------------
 
 def main() -> int:
-    # If running in Railway/cloud (PORT set, no interactive terminal), use server mode
-    if os.getenv("PORT") and not sys.stdin.isatty():
+    # If running in Railway/cloud (PORT env var is set), use server mode
+    if os.getenv("PORT"):
         import importlib
-        server = importlib.import_module("server")
-        server.main()
+        server_mod = importlib.import_module("server")
+        server_mod.main()
         return 0
 
     ap = argparse.ArgumentParser(description="SMS Spend Agent — powered by Claude")
