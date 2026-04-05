@@ -1,6 +1,7 @@
 """Claude-powered SMS spend agent with tool use."""
 
 import json
+import threading
 from datetime import date, datetime, timedelta
 from typing import List, Optional
 
@@ -135,10 +136,11 @@ class SMSSpendAgent:
         transactions: List[Transaction],
         api_key: str,
     ):
-        self._sms = sms_messages
-        self._transactions = transactions
+        self._sms = list(sms_messages)
+        self._transactions = list(transactions)
         self._client = anthropic.Anthropic(api_key=api_key)
         self._conversation: List[dict] = []
+        self._lock = threading.Lock()   # guards _sms / _transactions for live ingestion
 
     # ------------------------------------------------------------------
     # Public API
@@ -211,6 +213,22 @@ class SMSSpendAgent:
         """Clear conversation history."""
         self._conversation = []
 
+    def ingest_sms(self, sms: SMSMessage, txn: Optional[Transaction]) -> None:
+        """
+        Add a freshly-received SMS (and its parsed transaction) to the
+        in-memory store so the agent's tools immediately reflect new data.
+        Thread-safe — called from the webhook server's background thread.
+        """
+        with self._lock:
+            # Avoid duplicates
+            existing_ids = {s.id for s in self._sms}
+            if sms.id not in existing_ids:
+                self._sms.append(sms)
+            if txn:
+                existing_sms_ids = {t.sms_id for t in self._transactions}
+                if txn.sms_id not in existing_sms_ids:
+                    self._transactions.append(txn)
+
     # ------------------------------------------------------------------
     # Tool execution
     # ------------------------------------------------------------------
@@ -226,7 +244,8 @@ class SMSSpendAgent:
             return {"error": f"Unknown tool: {name}"}
 
     def _tool_get_transactions(self, inputs: dict) -> dict:
-        txns = list(self._transactions)
+        with self._lock:
+            txns = list(self._transactions)
 
         start_date = inputs.get("start_date")
         end_date = inputs.get("end_date")
@@ -279,11 +298,12 @@ class SMSSpendAgent:
         query = inputs["query"].lower()
         limit = inputs.get("limit", 20)
 
-        matches = [
-            sms.to_dict()
-            for sms in self._sms
-            if query in sms.body.lower() or query in sms.sender.lower()
-        ][:limit]
+        with self._lock:
+            matches = [
+                sms.to_dict()
+                for sms in self._sms
+                if query in sms.body.lower() or query in sms.sender.lower()
+            ][:limit]
 
         return {"count": len(matches), "messages": matches}
 
@@ -292,10 +312,11 @@ class SMSSpendAgent:
     # ------------------------------------------------------------------
 
     def _compute_spend_summary(self, start_date: str, end_date: str) -> dict:
-        txns = [
-            t for t in self._transactions
-            if start_date <= t.timestamp.date().isoformat() <= end_date
-        ]
+        with self._lock:
+            txns = [
+                t for t in self._transactions
+                if start_date <= t.timestamp.date().isoformat() <= end_date
+            ]
 
         debits = [t for t in txns if t.transaction_type == TransactionType.DEBIT]
         credits = [t for t in txns if t.transaction_type == TransactionType.CREDIT]

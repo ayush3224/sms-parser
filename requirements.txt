@@ -3,3 +3,10 @@ python-dotenv>=1.0.0
 apscheduler>=3.10.0
 rich>=13.7.0
 pytz>=2024.1
+
+# Supabase storage
+supabase>=2.4.0
+
+# Webhook server (receives live SMS from Android)
+fastapi>=0.110.0
+uvicorn>=0.27.0
