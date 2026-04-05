@@ -73,31 +73,44 @@ def create_app(
             if provided != secret:
                 raise HTTPException(status_code=401, detail="Invalid secret")
 
-        raw: dict = await request.json()
+        # --- read raw bytes first so we never crash on bad JSON ---
+        raw_bytes = await request.body()
+        content_type = request.headers.get("content-type", "")
+
+        raw = {}
+        if "application/json" in content_type:
+            try:
+                import json as _json
+                raw = _json.loads(raw_bytes.decode("utf-8", errors="replace"))
+            except Exception:
+                # JSON is malformed — treat entire body as the SMS message
+                raw = {"message": raw_bytes.decode("utf-8", errors="replace")}
+        else:
+            # form-encoded or plain text
+            raw = {"message": raw_bytes.decode("utf-8", errors="replace")}
+
         log.debug("SMS webhook payload: %s", raw)
 
         # --- normalise across known app formats ---
-        # SMS Gateway for Android sends: phoneNumber, message, receivedAt, messageId
         if "phoneNumber" in raw:
-            sender   = raw["phoneNumber"]
-            body     = raw.get("message", "")
-            ts       = _parse_ts(raw.get("receivedAt"))
-            sms_id   = raw.get("messageId") or _sms_id(sender, body, ts.isoformat())
+            sender  = str(raw.get("phoneNumber", "UNKNOWN"))
+            body    = str(raw.get("message", ""))
+            ts      = _parse_ts(raw.get("receivedAt"))
+            sms_id  = str(raw.get("messageId") or _sms_id(sender, body, ts.isoformat()))
         else:
-            # Generic / fallback
-            sender   = (raw.get("sender") or raw.get("from") or
-                        raw.get("address") or "UNKNOWN")
-            body     = (raw.get("body") or raw.get("message") or
-                        raw.get("text") or "")
-            ts       = _parse_ts(raw.get("timestamp") or raw.get("date") or
-                                  raw.get("receivedAt"))
-            sms_id   = raw.get("id") or _sms_id(sender, body, ts.isoformat())
+            sender  = str(raw.get("sender") or raw.get("from") or
+                         raw.get("address") or "UNKNOWN")
+            body    = str(raw.get("body") or raw.get("message") or
+                         raw.get("text") or "")
+            ts      = _parse_ts(raw.get("timestamp") or raw.get("date") or
+                                raw.get("receivedAt"))
+            sms_id  = str(raw.get("id") or _sms_id(sender, body, ts.isoformat()))
 
         if not body.strip():
             raise HTTPException(status_code=400, detail="Empty SMS body")
 
         sms = SMSMessage(id=sms_id, sender=sender, body=body, timestamp=ts)
-        on_sms(sms)   # let exceptions propagate as 500
+        on_sms(sms)
 
         log.info("Ingested SMS id=%s sender=%s ts=%s", sms_id, sender, ts.isoformat())
         return {"status": "ok", "id": sms_id}
