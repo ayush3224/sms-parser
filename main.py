@@ -80,13 +80,16 @@ def _on_storage_warning(message: str) -> None:
 # ---------------------------------------------------------------------------
 
 def main() -> int:
-    # If running in Railway/cloud, use server mode
-    if (os.getenv("RUN_SERVER") or os.getenv("RAILWAY_ENVIRONMENT")
-            or os.getenv("RAILWAY_SERVICE_NAME")):
+    # Default to server mode unless --interactive flag is passed.
+    # This ensures Railway (which runs `python main.py`) starts the webhook server.
+    if "--interactive" not in sys.argv:
         import importlib
         server_mod = importlib.import_module("server")
         server_mod.main()
         return 0
+
+    # Remove --interactive from argv before argparse sees it
+    sys.argv.remove("--interactive")
 
     ap = argparse.ArgumentParser(description="SMS Spend Agent — powered by Claude")
     ap.add_argument("--summary", action="store_true",
