@@ -80,8 +80,8 @@ def _on_storage_warning(message: str) -> None:
 # ---------------------------------------------------------------------------
 
 def main() -> int:
-    # If running in Railway/cloud (PORT env var is set), use server mode
-    if os.getenv("PORT"):
+    # If running in Railway/cloud, use server mode
+    if os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY_SERVICE_NAME"):
         import importlib
         server_mod = importlib.import_module("server")
         server_mod.main()
