@@ -74,7 +74,7 @@ def main() -> None:
     log.info("Connected to Supabase")
 
     # --- load existing data ---
-    parser       = SMSParser()
+    parser       = SMSParser(api_key=api_key)
     sms_messages = store.load_all_sms()
     transactions = store.load_all_transactions()
     log.info("Loaded %d SMS / %d transactions", len(sms_messages), len(transactions))
