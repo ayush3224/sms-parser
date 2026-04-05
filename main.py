@@ -80,6 +80,13 @@ def _on_storage_warning(message: str) -> None:
 # ---------------------------------------------------------------------------
 
 def main() -> int:
+    # If running in Railway/cloud (PORT set, no interactive terminal), use server mode
+    if os.getenv("PORT") and not sys.stdin.isatty():
+        import importlib
+        server = importlib.import_module("server")
+        server.main()
+        return 0
+
     ap = argparse.ArgumentParser(description="SMS Spend Agent — powered by Claude")
     ap.add_argument("--summary", action="store_true",
                     help="Print yesterday's summary and exit")
