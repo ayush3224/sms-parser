@@ -14,7 +14,7 @@ _AMOUNT_PATTERNS = [
 
 _DEBIT_KEYWORDS = [
     'debited', 'spent', 'paid', 'payment of', 'purchase of',
-    'withdrawn', 'deducted', 'charged',
+    'withdrawn', 'deducted', 'charged', 'sent',
 ]
 _CREDIT_KEYWORDS = [
     'credited', 'received', 'deposited', 'refund', 'cashback', 'reversed',
@@ -53,8 +53,9 @@ _MERCHANT_PATTERNS = [
 
 _ACCOUNT_PATTERNS = [
     r'(?:a/c|acct?|account|card)\s*(?:no\.?|num(?:ber)?|ending|xx+)[\s:]*([0-9]{4})\b',
+    r'(?:a/c|acct?|account|card)\s*\*+([0-9]{4})\b',
     r'\bXX+([0-9]{4})\b',
-    r'\*{2,}([0-9]{4})\b',
+    r'\*+([0-9]{4})\b',
 ]
 
 _REFERENCE_PATTERNS = [
