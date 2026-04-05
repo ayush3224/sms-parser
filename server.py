@@ -19,6 +19,35 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 
+def _send_email_summary(summary: str, for_date) -> None:
+    """Send daily summary via Gmail SMTP. Skips silently if not configured."""
+    import smtplib
+    from email.mime.text import MIMEText
+
+    sender   = os.getenv("EMAIL_SENDER")    # your Gmail address
+    password = os.getenv("EMAIL_PASSWORD")  # Gmail App Password
+    receiver = os.getenv("EMAIL_RECEIVER")  # where to send (can be same as sender)
+
+    if not (sender and password and receiver):
+        return  # email not configured — skip silently
+
+    subject = f"Daily Spend Summary — {for_date}"
+    body    = f"Your spend summary for {for_date}:\n\n{summary}"
+
+    msg = MIMEText(body, "plain", "utf-8")
+    msg["Subject"] = subject
+    msg["From"]    = sender
+    msg["To"]      = receiver
+
+    try:
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
+            smtp.login(sender, password)
+            smtp.sendmail(sender, receiver, msg.as_string())
+        log.info("Daily summary emailed to %s", receiver)
+    except Exception as exc:
+        log.warning("Failed to send summary email: %s", exc)
+
+
 def main() -> None:
     # --- validate required env vars up front ---
     for var in ("ANTHROPIC_API_KEY", "SUPABASE_URL", "SUPABASE_KEY"):
@@ -53,9 +82,10 @@ def main() -> None:
     # --- agent ---
     agent = SMSSpendAgent(sms_messages, transactions, api_key)
 
-    # --- daily summary callback: log it (visible in Railway logs) ---
+    # --- daily summary callback: log it and email it ---
     def on_summary(summary: str, for_date) -> None:
         log.info("=== Daily Spend Summary (%s) ===\n%s", for_date, summary)
+        _send_email_summary(summary, for_date)
 
     def on_storage_warning(message: str) -> None:
         log.warning("Storage cleanup: %s", message)
