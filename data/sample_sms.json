@@ -1,0 +1,332 @@
+[
+  {
+    "id": "sms-001",
+    "sender": "HDFCBK",
+    "body": "Rs.2,450.00 debited from your HDFC Bank A/c XX4821 to Swiggy on 04-Apr-25 via UPI. Your UPI Ref No. 315847291023. If not done by you, call 18002586161.",
+    "timestamp": "2026-04-04T09:15:32+05:30"
+  },
+  {
+    "id": "sms-002",
+    "sender": "ICICIB",
+    "body": "INR 850.00 spent on your ICICI Bank Credit Card XX5967 at Zomato on 04-Apr-25. Avl Limit: INR 48,500. SMS BLOCK 5967 to 9215676766 to block your card.",
+    "timestamp": "2026-04-04T12:42:11+05:30"
+  },
+  {
+    "id": "sms-003",
+    "sender": "HDFCBK",
+    "body": "Rs.540.00 debited from your HDFC Bank A/c XX4821 to BigBasket on 04-Apr-25 via UPI. Your UPI Ref No. 315902847564. If not done by you, call 18002586161.",
+    "timestamp": "2026-04-04T14:05:00+05:30"
+  },
+  {
+    "id": "sms-004",
+    "sender": "AXISBK",
+    "body": "Your Axis Bank A/c XX7732 is debited by Rs.3,200.00 on 04-Apr-25 via NEFT to AMAZON INDIA. Ref No AXNF204050312. Balance: Rs.12,345.67",
+    "timestamp": "2026-04-04T16:30:22+05:30"
+  },
+  {
+    "id": "sms-005",
+    "sender": "HDFCBK",
+    "body": "Rs.150.00 debited from your HDFC Bank A/c XX4821 to Ola at 04-Apr-25 via UPI. UPI Ref No. 315967102938.",
+    "timestamp": "2026-04-04T19:55:47+05:30"
+  },
+  {
+    "id": "sms-006",
+    "sender": "SBIBK",
+    "body": "Dear Customer, Rs 45,000.00 credited to your SBI A/c XX1234 by NEFT on 04-Apr-25. Ref: SBIN2604041. Your balance is Rs 67,234.56.",
+    "timestamp": "2026-04-04T11:00:03+05:30"
+  },
+  {
+    "id": "sms-007",
+    "sender": "HDFCBK",
+    "body": "Rs.1,800.00 debited from your HDFC Bank A/c XX4821 to Myntra on 04-Apr-25 via Net Banking. Ref No 204041800. Your avl bal is Rs 28,456.78.",
+    "timestamp": "2026-04-04T21:11:00+05:30"
+  },
+  {
+    "id": "sms-008",
+    "sender": "ICICIB",
+    "body": "INR 600.00 spent on your ICICI Bank Credit Card XX5967 at BookMyShow on 04-Apr-25. Avl Limit: INR 47,900.",
+    "timestamp": "2026-04-04T17:22:33+05:30"
+  },
+  {
+    "id": "sms-009",
+    "sender": "HDFCBK",
+    "body": "Rs.5,000.00 debited from your HDFC Bank A/c XX4821 via ATM on 03-Apr-25. ATM: HDFC ATM KORAMANGALA. If not done by you call 18002586161.",
+    "timestamp": "2026-04-03T10:05:00+05:30"
+  },
+  {
+    "id": "sms-010",
+    "sender": "AXISBK",
+    "body": "Your Axis Bank A/c XX7732 is debited by Rs.750.00 on 03-Apr-25 at 11:30 for Uber via UPI. UPI Ref: 314987231045. Bal: Rs.15,545.67.",
+    "timestamp": "2026-04-03T11:30:15+05:30"
+  },
+  {
+    "id": "sms-011",
+    "sender": "KOTAKB",
+    "body": "Rs.2,100.00 debited from Kotak Bank A/c XX9988 to BPCL Petrol Pump on 03-Apr-25 via Debit Card. Avl Bal: Rs.8,765.32.",
+    "timestamp": "2026-04-03T13:45:00+05:30"
+  },
+  {
+    "id": "sms-012",
+    "sender": "HDFCBK",
+    "body": "Rs.320.00 debited from your HDFC Bank A/c XX4821 to Starbucks at 03-Apr-25 via UPI. UPI Ref No. 314890123456.",
+    "timestamp": "2026-04-03T09:20:00+05:30"
+  },
+  {
+    "id": "sms-013",
+    "sender": "ICICIB",
+    "body": "INR 4,999.00 spent on your ICICI Bank Credit Card XX5967 at Flipkart on 03-Apr-25. Avl Limit: INR 43,501.",
+    "timestamp": "2026-04-03T15:10:00+05:30"
+  },
+  {
+    "id": "sms-014",
+    "sender": "SBIBK",
+    "body": "Rs 1,200.00 debited from your SBI A/c XX1234 on 03-Apr-25 for Electricity Bill payment to BESCOM via Net Banking. Ref: SB2304031200.",
+    "timestamp": "2026-04-03T18:00:00+05:30"
+  },
+  {
+    "id": "sms-015",
+    "sender": "HDFCBK",
+    "body": "Rs.480.00 debited from your HDFC Bank A/c XX4821 to Swiggy on 03-Apr-25 via UPI. UPI Ref No. 314923456789.",
+    "timestamp": "2026-04-03T20:30:00+05:30"
+  },
+  {
+    "id": "sms-016",
+    "sender": "AXISBK",
+    "body": "INR 8,500.00 credited to your Axis Bank A/c XX7732 on 03-Apr-25 via IMPS from RAHUL SHARMA. UTR 314000112233. Bal: Rs.24,045.67.",
+    "timestamp": "2026-04-03T16:20:00+05:30"
+  },
+  {
+    "id": "sms-017",
+    "sender": "HDFCBK",
+    "body": "Rs.1,450.00 debited from your HDFC Bank A/c XX4821 to BigBasket on 02-Apr-25 via UPI. UPI Ref No. 313847291023.",
+    "timestamp": "2026-04-02T10:15:00+05:30"
+  },
+  {
+    "id": "sms-018",
+    "sender": "ICICIB",
+    "body": "INR 2,200.00 spent on your ICICI Bank Credit Card XX5967 at Croma Electronics on 02-Apr-25. Avl Limit: INR 38,502.",
+    "timestamp": "2026-04-02T14:35:00+05:30"
+  },
+  {
+    "id": "sms-019",
+    "sender": "KOTAKB",
+    "body": "Rs.650.00 debited from Kotak Bank A/c XX9988 to McDonald's on 02-Apr-25 via UPI. UPI Ref: 313987654321.",
+    "timestamp": "2026-04-02T13:10:00+05:30"
+  },
+  {
+    "id": "sms-020",
+    "sender": "HDFCBK",
+    "body": "Rs.18,000.00 debited from your HDFC Bank A/c XX4821 to IRCTC on 02-Apr-25 via Net Banking. Ref No 202041800. Ticket booked successfully.",
+    "timestamp": "2026-04-02T11:00:00+05:30"
+  },
+  {
+    "id": "sms-021",
+    "sender": "SBIBK",
+    "body": "Rs 4,500.00 debited from your SBI A/c XX1234 on 02-Apr-25 for LIC Premium payment via Net Banking. Ref: SB2202024500.",
+    "timestamp": "2026-04-02T09:05:00+05:30"
+  },
+  {
+    "id": "sms-022",
+    "sender": "AXISBK",
+    "body": "Your Axis Bank A/c XX7732 is debited by Rs.950.00 on 02-Apr-25 for Amazon Prime subscription via Credit Card XX7732. Ref: AX0204022.",
+    "timestamp": "2026-04-02T08:00:00+05:30"
+  },
+  {
+    "id": "sms-023",
+    "sender": "HDFCBK",
+    "body": "Rs.280.00 debited from your HDFC Bank A/c XX4821 to Zomato on 02-Apr-25 via UPI. UPI Ref No. 313802145678.",
+    "timestamp": "2026-04-02T20:00:00+05:30"
+  },
+  {
+    "id": "sms-024",
+    "sender": "ICICIB",
+    "body": "INR 75,000.00 credited to your ICICI Bank A/c XX5967 on 02-Apr-25 via NEFT — Salary from TECH SOLUTIONS PVT LTD. UTR ICIC2604020001.",
+    "timestamp": "2026-04-02T10:30:00+05:30"
+  },
+  {
+    "id": "sms-025",
+    "sender": "HDFCBK",
+    "body": "Rs.3,600.00 debited from your HDFC Bank A/c XX4821 to Apollo Pharmacy on 01-Apr-25 via UPI. UPI Ref No. 312900123456.",
+    "timestamp": "2026-04-01T11:45:00+05:30"
+  },
+  {
+    "id": "sms-026",
+    "sender": "AXISBK",
+    "body": "Your Axis Bank A/c XX7732 is debited by Rs.1,100.00 on 01-Apr-25 via UPI to Rapido. UPI Ref: 312850987654.",
+    "timestamp": "2026-04-01T08:30:00+05:30"
+  },
+  {
+    "id": "sms-027",
+    "sender": "KOTAKB",
+    "body": "Rs.12,000.00 debited from Kotak Bank A/c XX9988 to HDFC Home Loan on 01-Apr-25 via NEFT. Ref: KT01040112000.",
+    "timestamp": "2026-04-01T09:00:00+05:30"
+  },
+  {
+    "id": "sms-028",
+    "sender": "SBIBK",
+    "body": "Rs 560.00 debited from your SBI A/c XX1234 on 01-Apr-25 to Domino's Pizza via UPI. Ref: SB0104010560.",
+    "timestamp": "2026-04-01T21:15:00+05:30"
+  },
+  {
+    "id": "sms-029",
+    "sender": "HDFCBK",
+    "body": "Rs.2,800.00 debited from your HDFC Bank A/c XX4821 to Reliance Jio on 01-Apr-25 via Net Banking. Ref No 201041800. Recharge successful.",
+    "timestamp": "2026-04-01T14:20:00+05:30"
+  },
+  {
+    "id": "sms-030",
+    "sender": "ICICIB",
+    "body": "INR 3,500.00 spent on your ICICI Bank Credit Card XX5967 at Decathlon on 01-Apr-25. Avl Limit: INR 35,002.",
+    "timestamp": "2026-04-01T16:00:00+05:30"
+  },
+  {
+    "id": "sms-031",
+    "sender": "HDFCBK",
+    "body": "Rs.420.00 debited from your HDFC Bank A/c XX4821 to Swiggy on 01-Apr-25 via UPI. UPI Ref No. 312745123456.",
+    "timestamp": "2026-04-01T13:00:00+05:30"
+  },
+  {
+    "id": "sms-032",
+    "sender": "AXISBK",
+    "body": "INR 500.00 cashback credited to your Axis Bank A/c XX7732 on 01-Apr-25. Ref: AXCB01042026. Valid cashback on Amazon spend.",
+    "timestamp": "2026-04-01T10:00:00+05:30"
+  },
+  {
+    "id": "sms-033",
+    "sender": "HDFCBK",
+    "body": "Rs.6,700.00 debited from your HDFC Bank A/c XX4821 to Hyatt Regency Bangalore on 31-Mar-25 via Credit Card. Ref: HY31032026.",
+    "timestamp": "2026-03-31T15:30:00+05:30"
+  },
+  {
+    "id": "sms-034",
+    "sender": "SBIBK",
+    "body": "Rs 2,400.00 debited from your SBI A/c XX1234 on 31-Mar-25 to D-Mart via Debit Card. Ref: SB3103022400.",
+    "timestamp": "2026-03-31T11:00:00+05:30"
+  },
+  {
+    "id": "sms-035",
+    "sender": "KOTAKB",
+    "body": "Rs.1,800.00 debited from Kotak Bank A/c XX9988 to Lenskart on 31-Mar-25 via UPI. UPI Ref: 311780234567.",
+    "timestamp": "2026-03-31T17:45:00+05:30"
+  },
+  {
+    "id": "sms-036",
+    "sender": "ICICIB",
+    "body": "INR 1,250.00 spent on your ICICI Bank Credit Card XX5967 at Cafe Coffee Day on 31-Mar-25. Avl Limit: INR 33,752.",
+    "timestamp": "2026-03-31T16:20:00+05:30"
+  },
+  {
+    "id": "sms-037",
+    "sender": "HDFCBK",
+    "body": "Rs.500.00 debited from your HDFC Bank A/c XX4821 to Ola on 31-Mar-25 via UPI. UPI Ref No. 311690876543.",
+    "timestamp": "2026-03-31T09:00:00+05:30"
+  },
+  {
+    "id": "sms-038",
+    "sender": "AXISBK",
+    "body": "Your Axis Bank A/c XX7732 is debited by Rs.9,999.00 on 31-Mar-25 via UPI to NYKAA FASHION. UPI Ref: 311700112345.",
+    "timestamp": "2026-03-31T13:00:00+05:30"
+  },
+  {
+    "id": "sms-039",
+    "sender": "HDFCBK",
+    "body": "Rs.15,000.00 debited from your HDFC Bank A/c XX4821 via IMPS to savings account XX8899 on 30-Mar-25. Ref No: HDFC30032026.",
+    "timestamp": "2026-03-30T10:00:00+05:30"
+  },
+  {
+    "id": "sms-040",
+    "sender": "SBIBK",
+    "body": "Rs 780.00 debited from your SBI A/c XX1234 on 30-Mar-25 to Haldiram's via UPI. Ref: SB3003020780.",
+    "timestamp": "2026-03-30T20:00:00+05:30"
+  },
+  {
+    "id": "sms-041",
+    "sender": "ICICIB",
+    "body": "INR 7,500.00 spent on your ICICI Bank Credit Card XX5967 at IndiGo Airlines on 30-Mar-25. Avl Limit: INR 26,252.",
+    "timestamp": "2026-03-30T11:30:00+05:30"
+  },
+  {
+    "id": "sms-042",
+    "sender": "HDFCBK",
+    "body": "Rs.350.00 debited from your HDFC Bank A/c XX4821 to Swiggy on 30-Mar-25 via UPI. UPI Ref No. 310650987654.",
+    "timestamp": "2026-03-30T21:00:00+05:30"
+  },
+  {
+    "id": "sms-043",
+    "sender": "KOTAKB",
+    "body": "Rs.4,000.00 debited from Kotak Bank A/c XX9988 to Gold's Gym via NEFT on 30-Mar-25. Ref: KT30030240000.",
+    "timestamp": "2026-03-30T08:00:00+05:30"
+  },
+  {
+    "id": "sms-044",
+    "sender": "AXISBK",
+    "body": "INR 25,000.00 credited to your Axis Bank A/c XX7732 on 30-Mar-25 via NEFT from PRIYA SHARMA. UTR AXIS30032026001.",
+    "timestamp": "2026-03-30T14:00:00+05:30"
+  },
+  {
+    "id": "sms-045",
+    "sender": "HDFCBK",
+    "body": "Rs.2,000.00 debited from your HDFC Bank A/c XX4821 via ATM on 29-Mar-25. ATM: ICICI ATM INDIRANAGAR. Balance: Rs.42,456.78.",
+    "timestamp": "2026-03-29T12:00:00+05:30"
+  },
+  {
+    "id": "sms-046",
+    "sender": "ICICIB",
+    "body": "INR 450.00 refund credited to your ICICI Bank Credit Card XX5967 on 29-Mar-25 from Myntra. Avl Limit: INR 26,702.",
+    "timestamp": "2026-03-29T10:00:00+05:30"
+  },
+  {
+    "id": "sms-047",
+    "sender": "SBIBK",
+    "body": "Rs 3,200.00 debited from your SBI A/c XX1234 on 29-Mar-25 to Airtel Postpaid via Net Banking. Ref: SB2903023200.",
+    "timestamp": "2026-03-29T09:30:00+05:30"
+  },
+  {
+    "id": "sms-048",
+    "sender": "HDFCBK",
+    "body": "Rs.1,100.00 debited from your HDFC Bank A/c XX4821 to Pizza Hut on 29-Mar-25 via UPI. UPI Ref No. 309580123456.",
+    "timestamp": "2026-03-29T19:30:00+05:30"
+  },
+  {
+    "id": "sms-049",
+    "sender": "KOTAKB",
+    "body": "Rs.890.00 debited from Kotak Bank A/c XX9988 to Spotify via Credit Card on 28-Mar-25. Ref: KT28032026890.",
+    "timestamp": "2026-03-28T10:00:00+05:30"
+  },
+  {
+    "id": "sms-050",
+    "sender": "AXISBK",
+    "body": "Your Axis Bank A/c XX7732 is debited by Rs.5,500.00 on 28-Mar-25 via UPI to MAKEMYTRIP. UPI Ref: 308700456789. Bal: Rs.26,045.67.",
+    "timestamp": "2026-03-28T11:00:00+05:30"
+  },
+  {
+    "id": "sms-051",
+    "sender": "HDFCBK",
+    "body": "Rs.220.00 debited from your HDFC Bank A/c XX4821 to Dunzo on 04-Apr-25 via UPI. UPI Ref No. 315999876543.",
+    "timestamp": "2026-04-04T08:00:00+05:30"
+  },
+  {
+    "id": "sms-052",
+    "sender": "ICICIB",
+    "body": "INR 1,500.00 spent on your ICICI Bank Credit Card XX5967 at Crossword Books on 04-Apr-25. Avl Limit: INR 46,400.",
+    "timestamp": "2026-04-04T11:00:00+05:30"
+  },
+  {
+    "id": "sms-053",
+    "sender": "SBIBK",
+    "body": "Rs 670.00 debited from your SBI A/c XX1234 on 04-Apr-25 to Boat Lifestyle via UPI. Ref: SB0404020670.",
+    "timestamp": "2026-04-04T18:30:00+05:30"
+  },
+  {
+    "id": "sms-054",
+    "sender": "HDFCBK",
+    "body": "Rs.3,900.00 debited from your HDFC Bank A/c XX4821 to Cred via UPI on 04-Apr-25 — Credit Card Bill Payment. UPI Ref No. 315988001122.",
+    "timestamp": "2026-04-04T22:00:00+05:30"
+  },
+  {
+    "id": "sms-055",
+    "sender": "AXISBK",
+    "body": "INR 200.00 cashback credited to your Axis Bank A/c XX7732 on 03-Apr-25 from PhonePe. Ref: PE03042026200.",
+    "timestamp": "2026-04-03T17:00:00+05:30"
+  }
+]
