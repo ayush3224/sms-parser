@@ -90,28 +90,48 @@ class SMSParser:
     def __init__(self, api_key: Optional[str] = None):
         self._api_key = api_key
 
-    def parse(self, sms: SMSMessage) -> Optional[Transaction]:
-        """Return a Transaction if the SMS looks like a financial transaction, else None."""
+    def parse(self, sms: SMSMessage, on_unknown_template=None) -> Optional[Transaction]:
+        """Return a Transaction if the SMS looks like a financial transaction, else None.
+
+        on_unknown_template: optional callback(body, sender, bank, merchant, missing_fields)
+            called when Claude fallback was needed — use this to persist the template for review.
+        """
         body = sms.body
 
         amount = self._extract_amount(body)
         if amount is None:
             return None
 
-        sender       = sms.sender or ""
-        bank         = self._extract_bank(sender, body)
-        merchant     = self._extract_merchant(body)
-        payment_mode = self._extract_payment_mode(body)
+        sender        = sms.sender or ""
+        bank          = self._extract_bank(sender, body)
+        merchant      = self._extract_merchant(body)
+        payment_mode  = self._extract_payment_mode(body)
         account_last4 = self._extract_account(body)
 
-        # Use Claude to fill in missing fields when sender is unknown or fields are missing
-        if self._api_key and (sender.lower() in ("unknown", "") or not bank or not merchant):
+        # Detect which fields regex missed
+        missing = [f for f, v in [("bank", bank), ("merchant", merchant)] if not v]
+        needs_claude = bool(missing) or sender.lower() in ("unknown", "")
+
+        if self._api_key and needs_claude:
             claude_data = self._claude_parse(body)
             if claude_data:
                 bank          = bank          or claude_data.get("bank")
                 merchant      = merchant      or claude_data.get("merchant")
                 payment_mode  = payment_mode  or claude_data.get("payment_mode")
                 account_last4 = account_last4 or claude_data.get("account_last4")
+
+            # Notify caller so the template can be saved for pattern learning
+            if on_unknown_template and missing:
+                try:
+                    on_unknown_template(
+                        body=body,
+                        sender=sender,
+                        bank=bank,
+                        merchant=merchant,
+                        missing_fields=missing,
+                    )
+                except Exception:
+                    pass
 
         return Transaction(
             sms_id=sms.id,

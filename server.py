@@ -101,7 +101,7 @@ def main() -> None:
 
     # --- SMS ingestion callback ---
     def on_sms(sms: SMSMessage) -> None:
-        txn = parser.parse(sms)
+        txn = parser.parse(sms, on_unknown_template=store.save_unknown_template)
         store.save(sms, txn)
         agent.ingest_sms(sms, txn)
         if txn:

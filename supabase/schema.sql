@@ -38,7 +38,23 @@ CREATE INDEX IF NOT EXISTS idx_txn_bank           ON transactions (bank);
 CREATE INDEX IF NOT EXISTS idx_txn_payment_mode   ON transactions (payment_mode);
 
 -- ============================================================
--- Helper function: returns the current Postgres DB size in bytes.
+-- Unknown SMS templates — SMS where regex couldn't fully parse
+-- (bank or merchant missing, Claude fallback was used)
+-- Review these periodically with: python learn_patterns.py
+-- ============================================================
+CREATE TABLE IF NOT EXISTS unknown_templates (
+    id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    body         TEXT        NOT NULL,
+    sender       TEXT,
+    bank         TEXT,                               -- what was extracted (may be null)
+    merchant     TEXT,                               -- what was extracted (may be null)
+    missing_fields TEXT[],                           -- e.g. ['bank','merchant']
+    received_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    applied      BOOLEAN     NOT NULL DEFAULT FALSE  -- mark TRUE once regex is updated
+);
+
+CREATE INDEX IF NOT EXISTS idx_tmpl_applied ON unknown_templates (applied, received_at DESC);
+
 -- Called by the Python app to monitor free-tier usage (500 MB cap).
 -- ============================================================
 CREATE OR REPLACE FUNCTION get_db_size_bytes()
