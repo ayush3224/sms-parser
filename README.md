@@ -96,6 +96,12 @@ EMAIL_RECEIVER=you@gmail.com
 WEBHOOK_SECRET=any_random_string   # optional
 ```
 
+> **Getting a Gmail App Password:**
+> 1. Go to [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords)
+> 2. Enable 2-Step Verification if not already on
+> 3. Create an App Password for "Mail"
+> 4. Copy the 16-character password into `EMAIL_PASSWORD`
+
 ### 4. Set up Supabase schema
 
 In the [Supabase SQL Editor](https://supabase.com/dashboard), run the contents of `supabase/schema.sql`.
@@ -132,7 +138,21 @@ You: Which merchant did I spend the most on in April?
 You: Did I get any credits this week?
 ```
 
-### One-shot daily summary (local)
+### Trigger summary email on demand
+
+```bash
+python trigger_summary.py                  # email yesterday's summary now
+python trigger_summary.py 2026-04-05       # email summary for a specific date
+```
+
+### Review and improve SMS parsing patterns
+
+```bash
+python learn_patterns.py                   # review all unrecognised templates
+python learn_patterns.py --sms "Your A/c XX5865 debited..."   # analyse one SMS
+```
+
+### One-shot daily summary (local, no email)
 
 ```bash
 python cli.py --summary
@@ -176,6 +196,8 @@ sms-parser/
 ├── server.py              # Production entry point (Railway)
 ├── cli.py                 # Local interactive CLI
 ├── main.py                # Thin redirect → server.py (Railway auto-detects this)
+├── trigger_summary.py     # Send summary email on demand
+├── learn_patterns.py      # Review unknown templates, get regex suggestions
 ├── requirements.txt
 ├── railpack.json          # Railway build config
 ├── railpack.toml          # Railway start command
@@ -183,15 +205,15 @@ sms-parser/
 ├── data/
 │   └── sample_sms.json    # Sample SMS for local testing
 ├── supabase/
-│   └── schema.sql         # Database schema
+│   └── schema.sql         # Database schema (sms_messages, transactions, unknown_templates)
 └── src/sms_parser/
-    ├── agent.py           # Claude-powered Q&A agent
+    ├── agent.py           # Claude Opus 4.6 Q&A agent
     ├── models.py          # SMSMessage & Transaction dataclasses
-    ├── sms_parser.py      # Regex + Claude Haiku SMS parser
+    ├── sms_parser.py      # Regex + Claude Haiku fallback SMS parser
     ├── sms_reader.py      # Load SMS from JSON / Android XML
-    ├── supabase_store.py  # Supabase read/write + storage cleanup
+    ├── supabase_store.py  # Supabase read/write, storage cleanup, unknown templates
     ├── webhook_server.py  # FastAPI webhook endpoint
-    └── scheduler.py       # APScheduler jobs
+    └── scheduler.py       # APScheduler jobs (daily summary, storage check)
 ```
 
 ---
