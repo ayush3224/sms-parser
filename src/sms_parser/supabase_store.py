@@ -208,7 +208,7 @@ class SupabaseStore:
     ) -> None:
         """Save an SMS whose regex parsing was incomplete for later pattern review."""
         try:
-            self._client.table("unknown_templates").insert({
+            self._db.table("unknown_templates").insert({
                 "body":           body,
                 "sender":         sender,
                 "bank":           bank,
@@ -220,11 +220,11 @@ class SupabaseStore:
 
     def load_unknown_templates(self, unapplied_only: bool = True) -> list:
         """Return stored unknown templates (default: only unapplied ones)."""
-        q = self._client.table("unknown_templates").select("*").order("received_at", desc=False)
+        q = self._db.table("unknown_templates").select("*").order("received_at", desc=False)
         if unapplied_only:
             q = q.eq("applied", False)
         return q.execute().data or []
 
     def mark_template_applied(self, template_id: str) -> None:
         """Mark a template as applied after its regex pattern has been added."""
-        self._client.table("unknown_templates").update({"applied": True}).eq("id", template_id).execute()
+        self._db.table("unknown_templates").update({"applied": True}).eq("id", template_id).execute()
