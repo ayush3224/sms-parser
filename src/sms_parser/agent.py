@@ -146,6 +146,27 @@ class SMSSpendAgent:
     # Public API
     # ------------------------------------------------------------------
 
+    def get_one_line_summary(self, email_data) -> str:
+        """Ask Claude Haiku for a one-sentence spend summary (cheap & fast)."""
+        try:
+            response = self._client.messages.create(
+                model="claude-haiku-4-5-20251001",
+                max_tokens=80,
+                messages=[{
+                    "role": "user",
+                    "content": (
+                        f"Write ONE sentence (max 18 words) summarising spending on "
+                        f"{email_data.date_str}. Use ₹ for amounts. "
+                        f"Total: ₹{email_data.total_debit:,.0f}, "
+                        f"{email_data.txn_count} transactions, "
+                        f"biggest: ₹{email_data.largest_spend:,.0f} at {email_data.largest_merchant}."
+                    ),
+                }],
+            )
+            return self._extract_text(response).strip('"').strip()
+        except Exception:
+            return ""
+
     def get_daily_spend_summary(self, for_date: Optional[date] = None) -> str:
         """Generate a natural-language spend summary for the given date (defaults to yesterday)."""
         if for_date is None:

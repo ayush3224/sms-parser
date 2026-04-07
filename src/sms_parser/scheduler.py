@@ -32,10 +32,10 @@ def _run_daily_summary(
     yesterday = (datetime.now(tz=IST) - timedelta(days=1)).date()
     log.info("Generating daily spend summary for %s", yesterday)
     try:
-        summary = agent.get_daily_spend_summary(yesterday)
         if on_summary:
-            on_summary(summary, yesterday)
+            on_summary(yesterday)
         else:
+            summary = agent.get_daily_spend_summary(yesterday)
             print(f"\n[Daily Summary — {yesterday}]\n{summary}\n")
     except Exception:
         log.exception("Daily spend summary failed")

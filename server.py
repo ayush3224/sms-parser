@@ -19,10 +19,13 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 
-def _send_email_summary(summary: str, for_date) -> None:
-    """Send daily summary via Gmail SMTP. Skips silently if not configured."""
+def _send_email_summary(email_data, for_date) -> None:
+    """Send daily summary as an HTML email via Gmail SMTP. Skips silently if not configured."""
     import smtplib
+    from email.mime.multipart import MIMEMultipart
     from email.mime.text import MIMEText
+
+    from src.sms_parser.email_template import render_html_email
 
     sender   = os.getenv("EMAIL_SENDER")    # your Gmail address
     password = os.getenv("EMAIL_PASSWORD")  # Gmail App Password
@@ -31,13 +34,14 @@ def _send_email_summary(summary: str, for_date) -> None:
     if not (sender and password and receiver):
         return  # email not configured — skip silently
 
-    subject = f"Daily Spend Summary — {for_date}"
-    body    = f"Your spend summary for {for_date}:\n\n{summary}"
+    subject  = f"Daily Spend Summary — {for_date}"
+    html_body = render_html_email(email_data)
 
-    msg = MIMEText(body, "plain", "utf-8")
+    msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
     msg["From"]    = sender
     msg["To"]      = receiver
+    msg.attach(MIMEText(html_body, "html", "utf-8"))
 
     try:
         with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
@@ -82,10 +86,18 @@ def main() -> None:
     # --- agent ---
     agent = SMSSpendAgent(sms_messages, transactions, api_key)
 
-    # --- daily summary callback: log it and email it ---
-    def on_summary(summary: str, for_date) -> None:
-        log.info("=== Daily Spend Summary (%s) ===\n%s", for_date, summary)
-        _send_email_summary(summary, for_date)
+    # --- daily summary callback: build HTML email and send it ---
+    def on_summary(for_date) -> None:
+        from src.sms_parser.email_template import build_email_data
+        receiver = os.getenv("EMAIL_RECEIVER", "")
+        fresh_txns = store.load_all_transactions()
+        email_data = build_email_data(fresh_txns, for_date, receiver_email=receiver)
+        email_data.one_line_summary = agent.get_one_line_summary(email_data)
+        log.info(
+            "=== Daily Spend Summary (%s) === ₹%.0f across %d txns",
+            for_date, email_data.total_debit, email_data.txn_count,
+        )
+        _send_email_summary(email_data, for_date)
 
     def on_storage_warning(message: str) -> None:
         log.warning("Storage cleanup: %s", message)

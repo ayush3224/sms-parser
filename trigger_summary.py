@@ -24,12 +24,12 @@ sb_key  = os.environ["SUPABASE_KEY"]
 
 import pytz
 from src.sms_parser.agent          import SMSSpendAgent
-from src.sms_parser.sms_parser     import SMSParser
+from src.sms_parser.email_template import build_email_data
 from src.sms_parser.supabase_store import SupabaseStore
 
 IST = pytz.timezone("Asia/Kolkata")
 
-# Parse target date
+# ── Parse target date ──────────────────────────────────────────────────────
 if len(sys.argv) > 1:
     try:
         target = date.fromisoformat(sys.argv[1])
@@ -40,17 +40,27 @@ else:
 
 print(f"Generating summary for {target} …")
 
+# ── Load data ──────────────────────────────────────────────────────────────
 store        = SupabaseStore(sb_url, sb_key)
-sms_messages = store.load_all_sms()
 transactions = store.load_all_transactions()
-agent        = SMSSpendAgent(sms_messages, transactions, api_key)
-summary      = agent.get_daily_spend_summary(target)
+agent        = SMSSpendAgent([], transactions, api_key)
 
-print("\n" + "="*50)
-print(summary)
-print("="*50 + "\n")
+# ── Build structured email data ────────────────────────────────────────────
+receiver   = os.getenv("EMAIL_RECEIVER", "")
+email_data = build_email_data(transactions, target, receiver_email=receiver)
 
-# Send email
+if email_data.txn_count == 0:
+    print(f"No debit transactions found for {target}.")
+else:
+    print(f"  ₹{email_data.total_debit:,.0f} across {email_data.txn_count} transactions")
+    print(f"  Largest: ₹{email_data.largest_spend:,.0f} at {email_data.largest_merchant}")
+
+# ── One-line summary from Claude Haiku ────────────────────────────────────
+email_data.one_line_summary = agent.get_one_line_summary(email_data)
+if email_data.one_line_summary:
+    print(f"  → {email_data.one_line_summary}")
+
+# ── Send HTML email ────────────────────────────────────────────────────────
 from server import _send_email_summary
-_send_email_summary(summary, target)
+_send_email_summary(email_data, target)
 print("Done. Check your inbox.")
