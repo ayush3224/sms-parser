@@ -24,9 +24,24 @@ _CREDIT_KEYWORDS = [
     'credited', 'received', 'deposited', 'refund', 'cashback', 'reversed',
 ]
 
+# Messages matching any of these patterns are NOT real transactions and must be skipped
+_SKIP_PATTERNS = [
+    # Future / scheduled deductions (not yet executed)
+    r'\bwill\s+be\s+(?:deducted|charged|debited|processed)\b',
+    r'\bscheduled\s+(?:for|on)\b',
+    # Balance-only alerts
+    r'\bbalance\s+(?:is|alert|update|intimation)\b',
+    r'\bavailable\s+balance\b',
+    r'\baccount\s+balance\b',
+    r'\bcurrent\s+balance\b',
+    r'\blow\s+balance\b',
+    # Bank "clearing" / internal ledger credits
+    r'\(clearing\)',
+]
+
 _BANK_SENDERS = {
     'HDFC': ['HDFCBK', 'HDFCBANK', 'HDFC'],
-    'ICICI': ['ICICIB', 'ICICIBANK', 'ICICI'],
+    'ICICI': ['ICICIB', 'ICICIBANK', 'ICICIC', 'ICICIT', 'ICICI'],
     'SBI': ['SBIBK', 'SBIINB', 'SBI', 'STATEBK'],
     'Axis': ['AXISBK', 'AXISBANK', 'AXIS'],
     'Kotak': ['KOTAKB', 'KOTAK'],
@@ -39,18 +54,26 @@ _BANK_SENDERS = {
 }
 
 _PAYMENT_MODES = [
-    ('UPI', r'\bUPI\b'),
+    ('UPI', r'\bUPI\b|\bMandate\b'),
     ('NEFT', r'\bNEFT\b'),
     ('IMPS', r'\bIMPS\b'),
     ('RTGS', r'\bRTGS\b'),
-    ('Credit Card', r'\bcredit\s+card\b'),
+    # "spent using ICICI Bank Card" / "using HDFC Credit Card"
+    ('Credit Card', r'\bcredit\s+card\b|\busing\s+\w+(?:\s+bank)?\s+card\b'),
     ('Debit Card', r'\bdebit\s+card\b'),
     ('ATM', r'\bATM\b'),
     ('Net Banking', r'\bnet\s*banking\b|\bnetbanking\b'),
 ]
 
 _MERCHANT_PATTERNS = [
+    # "To INDmoney 06/04/26" or "To Swati Jha Ref"
+    r'[Tt]o\s+([A-Z][A-Za-z][A-Za-z0-9\s&\-\.\']{1,38}?)(?:\s+[0-9]{2}/[0-9]{2}|\s+Ref\b|\s+Not\b|\s+UPI\b|\s+via\b|\.|$)',
+    # "at/to MERCHANT" generic
     r'(?:at|to)\s+([A-Z][A-Za-z0-9\s&\-\.\']{2,40}?)(?:\s+at\b|\s+on\b|\s+for\b|\s+via\b|\s+Ref\b|\s+Info|\.|$)',
+    # "spent using ICICI Bank Card XX3008 on 06-Apr-26 on AMAZON PAY IN G"
+    r'on\s+[0-9]{2}-[A-Za-z]{3}-[0-9]{2}\s+on\s+([A-Z][A-Za-z0-9\s&/\.]{2,40}?)(?:\.\s+Avl\b|\.\s+If\b|$)',
+    # "For INDmoney mandate" (E-Mandate confirmation)
+    r'\bFor\s+([A-Z][A-Za-z0-9\s&\-\.]{2,40}?)\s+mandate\b',
     r'paid\s+to\s+([A-Za-z][A-Za-z0-9\s&\-\.\']{2,40}?)(?:\s+at\b|\s+via\b|\s+Ref\b|\s+UPI\b|\.|$)',
     r'VPA\s*[:\-]?\s*([^\s@]+@[^\s]+)',
     r'([A-Z][A-Za-z\s]{2,30}?)\s+credited\b',   # "Swati Jha credited"
@@ -61,6 +84,8 @@ _ACCOUNT_PATTERNS = [
     r'(?:a/c|acct?|account|card)\s*\*+([0-9]{4})\b',
     r'\bXX([0-9]{4})\b',
     r'\bA/c\s+XX([0-9]{4})\b',
+    r'\bA/c\s+([0-9]{4})\b',        # bare "A/c 1029" without XX
+    r'[Cc]ard\s+XX([0-9]{4})\b',    # "Card XX3008"
     r'\*+([0-9]{4})\b',
 ]
 
@@ -97,6 +122,10 @@ class SMSParser:
             called when Claude fallback was needed — use this to persist the template for review.
         """
         body = sms.body
+
+        # Skip non-transaction messages: future deductions, balance alerts, clearing entries
+        if self._should_skip(body):
+            return None
 
         amount = self._extract_amount(body)
         if amount is None:
@@ -174,6 +203,13 @@ class SMSParser:
     # ------------------------------------------------------------------
     # Regex helpers
     # ------------------------------------------------------------------
+
+    def _should_skip(self, text: str) -> bool:
+        """Return True for non-transaction messages (future deductions, balance alerts)."""
+        for pattern in _SKIP_PATTERNS:
+            if re.search(pattern, text, re.IGNORECASE):
+                return True
+        return False
 
     def _extract_amount(self, text: str) -> Optional[float]:
         for pattern in _AMOUNT_PATTERNS:
