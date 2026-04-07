@@ -13,9 +13,17 @@ from dataclasses import dataclass, field
 from datetime import date
 from typing import List, Optional
 
+import platform
 import pytz
 
 IST = pytz.timezone("Asia/Kolkata")
+
+
+def _strftime_no_pad(dt, fmt: str) -> str:
+    """strftime with no-pad day/hour that works on both Linux and Windows."""
+    if platform.system() == "Windows":
+        fmt = fmt.replace("%-", "%#")
+    return dt.strftime(fmt)
 
 # Payment-mode → badge label
 _BADGE_MAP = {
@@ -156,7 +164,7 @@ def build_email_data(
     # transaction rows (debits only, newest first)
     rows: List[EmailRow] = []
     for t in sorted(debits, key=lambda x: x.timestamp, reverse=True):
-        time_str = t.timestamp.astimezone(IST).strftime("%-I:%M %p")
+        time_str = _strftime_no_pad(t.timestamp.astimezone(IST), "%-I:%M %p")
         rows.append(EmailRow(
             merchant      = t.merchant or "Unknown",
             amount        = t.amount,
@@ -176,7 +184,7 @@ def build_email_data(
     ]
 
     return EmailData(
-        date_str             = for_date.strftime("%-d %B %Y"),
+        date_str             = _strftime_no_pad(for_date, "%-d %B %Y"),
         date_short           = for_date.strftime("%d %b %Y"),
         day_of_week          = for_date.strftime("%A"),
         total_debit          = total_debit,
