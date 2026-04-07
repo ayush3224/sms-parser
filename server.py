@@ -91,7 +91,7 @@ def main() -> None:
         from src.sms_parser.email_template import build_email_data
         receiver = os.getenv("EMAIL_RECEIVER", "")
         fresh_txns = store.load_all_transactions()
-        email_data = build_email_data(fresh_txns, for_date, receiver_email=receiver)
+        email_data = build_email_data(fresh_txns, for_date, receiver_email=receiver, api_key=api_key)
         email_data.one_line_summary = agent.get_one_line_summary(email_data)
         log.info(
             "=== Daily Spend Summary (%s) === ₹%.0f across %d txns",

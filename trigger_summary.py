@@ -47,7 +47,7 @@ agent        = SMSSpendAgent([], transactions, api_key)
 
 # ── Build structured email data ────────────────────────────────────────────
 receiver   = os.getenv("EMAIL_RECEIVER", "")
-email_data = build_email_data(transactions, target, receiver_email=receiver)
+email_data = build_email_data(transactions, target, receiver_email=receiver, api_key=api_key)
 
 if email_data.txn_count == 0:
     print(f"No debit transactions found for {target}.")

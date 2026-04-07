@@ -126,10 +126,34 @@ class EmailData:
 # Builder
 # ---------------------------------------------------------------------------
 
+def _llm_extract_merchant(sms_text: str, api_key: str) -> Optional[str]:
+    """Ask Claude Haiku to extract the merchant/payee name from a single SMS."""
+    try:
+        import anthropic
+        client = anthropic.Anthropic(api_key=api_key)
+        response = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=40,
+            messages=[{
+                "role": "user",
+                "content": (
+                    "From this Indian bank SMS, extract ONLY the merchant or payee name "
+                    "(who money was paid to). Reply with just the name, nothing else. "
+                    "If you cannot identify a merchant, reply with null.\n\nSMS: " + sms_text
+                ),
+            }],
+        )
+        result = response.content[0].text.strip().strip('"\'')
+        return None if result.lower() in ("null", "none", "", "unknown") else result
+    except Exception:
+        return None
+
+
 def build_email_data(
     transactions,           # List[Transaction]
     for_date: date,
     receiver_email: str = "",
+    api_key: Optional[str] = None,
 ) -> EmailData:
     """Compute all fields needed for the HTML email from a transactions list."""
     from .models import TransactionType
@@ -175,11 +199,26 @@ def build_email_data(
     other_ip = _pct(other_instr, total_debit)
 
     # transaction rows (debits only, newest first)
+    # Re-import parser lazily to avoid circular deps
+    from .sms_parser import SMSParser as _SMSParser
+    _parser = _SMSParser()   # regex-only instance for re-extraction
+
     rows: List[EmailRow] = []
     for t in sorted(debits, key=lambda x: x.timestamp, reverse=True):
         time_str = _strftime_no_pad(t.timestamp.astimezone(IST), "%-I:%M %p")
-        # Merchant fallback: regex result → bank name → "Unknown"
-        merchant = t.merchant or t.bank or "Unknown"
+
+        merchant = t.merchant
+        if not merchant:
+            # 1. Try regex on the clean SMS text (catches SMS stored before pattern updates)
+            sms_text = _extract_sms_text(t.raw_sms or "")
+            merchant = _parser._extract_merchant(sms_text)
+        if not merchant and api_key:
+            # 2. Ask Claude Haiku — it can read what regex misses
+            sms_text = _extract_sms_text(t.raw_sms or "")
+            merchant = _llm_extract_merchant(sms_text, api_key)
+        if not merchant:
+            # 3. Last resort: bank name (better than "Unknown")
+            merchant = t.bank or "Unknown"
         rows.append(EmailRow(
             merchant      = merchant,
             amount        = t.amount,
