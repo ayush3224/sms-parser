@@ -13,10 +13,23 @@ from dataclasses import dataclass, field
 from datetime import date
 from typing import List, Optional
 
+import json as _json
 import platform
 import pytz
 
 IST = pytz.timezone("Asia/Kolkata")
+
+
+def _extract_sms_text(raw: str) -> str:
+    """If raw_sms is a JSON wrapper (MacroDroid format), return just the message text."""
+    raw = (raw or "").strip()
+    if raw.startswith("{"):
+        try:
+            data = _json.loads(raw)
+            return str(data.get("message") or raw)
+        except Exception:
+            pass
+    return raw
 
 
 def _strftime_no_pad(dt, fmt: str) -> str:
@@ -165,15 +178,17 @@ def build_email_data(
     rows: List[EmailRow] = []
     for t in sorted(debits, key=lambda x: x.timestamp, reverse=True):
         time_str = _strftime_no_pad(t.timestamp.astimezone(IST), "%-I:%M %p")
+        # Merchant fallback: regex result → bank name → "Unknown"
+        merchant = t.merchant or t.bank or "Unknown"
         rows.append(EmailRow(
-            merchant      = t.merchant or "Unknown",
+            merchant      = merchant,
             amount        = t.amount,
             txn_type      = "debit",
             payment_mode  = t.payment_mode or "Other",
             bank          = t.bank or "",
             account_last4 = f"XX{t.account_last4}" if t.account_last4 else "",
             time_str      = time_str,
-            raw_sms       = t.raw_sms or "",
+            raw_sms       = _extract_sms_text(t.raw_sms or ""),
             badge         = _badge(t.payment_mode),
         ))
 
@@ -236,7 +251,7 @@ def render_html_email(data: EmailData) -> str:
         if row.raw_sms:
             raw_sms_html = (
                 '<div style="background:#f5f5f0;border-radius:4px;'
-                'padding:6px 10px;margin-top:7px;font-size:11px;color:#999;'
+                'padding:6px 10px;margin-top:7px;font-size:11px;color:#444;'
                 "font-family:'Courier New',monospace;line-height:1.4;"
                 f'word-break:break-word;">{e(row.raw_sms)}</div>'
             )

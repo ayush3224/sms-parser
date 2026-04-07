@@ -73,31 +73,35 @@ def create_app(
             if provided != secret:
                 raise HTTPException(status_code=401, detail="Invalid secret")
 
-        # --- read raw bytes first so we never crash on bad JSON ---
+        # --- read raw bytes; always try JSON regardless of Content-Type ---
         raw_bytes = await request.body()
-        content_type = request.headers.get("content-type", "")
+        decoded   = raw_bytes.decode("utf-8", errors="replace")
 
         raw = {}
-        if "application/json" in content_type:
-            try:
-                import json as _json
-                raw = _json.loads(raw_bytes.decode("utf-8", errors="replace"))
-            except Exception:
-                # JSON is malformed — treat entire body as the SMS message
-                raw = {"message": raw_bytes.decode("utf-8", errors="replace")}
-        else:
-            # form-encoded or plain text
-            raw = {"message": raw_bytes.decode("utf-8", errors="replace")}
+        try:
+            import json as _json
+            raw = _json.loads(decoded)
+        except Exception:
+            # Not JSON — treat entire body as the SMS message
+            raw = {"message": decoded}
 
         log.debug("SMS webhook payload: %s", raw)
 
-        # --- normalise across known app formats ---
+        # --- normalise across known app/format variants ---
         if "phoneNumber" in raw:
+            # SMS Gateway for Android (camelCase)
             sender  = str(raw.get("phoneNumber", "UNKNOWN"))
             body    = str(raw.get("message", ""))
             ts      = _parse_ts(raw.get("receivedAt"))
             sms_id  = str(raw.get("messageId") or _sms_id(sender, body, ts.isoformat()))
+        elif "phone number" in raw:
+            # MacroDroid default format (space-separated keys)
+            sender  = str(raw.get("phone number", "UNKNOWN"))
+            body    = str(raw.get("message", ""))
+            ts      = _parse_ts(raw.get("received at"))
+            sms_id  = _sms_id(sender, body, ts.isoformat())
         else:
+            # Generic fallback
             sender  = str(raw.get("sender") or raw.get("from") or
                          raw.get("address") or "UNKNOWN")
             body    = str(raw.get("body") or raw.get("message") or
