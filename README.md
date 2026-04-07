@@ -1,53 +1,48 @@
 # SMS Spend Agent
 
-An AI-powered agent that reads your Indian banking SMS in real time, stores transactions in the cloud, and delivers a daily spend summary to your inbox — all without keeping your laptop on.
+An AI-powered agent that reads your Indian banking SMS in real time, stores transactions in the cloud, and delivers a rich daily spend summary to your inbox — all without keeping your laptop on.
 
 Built for Indian users with HDFC, ICICI, SBI, Axis, Kotak, IDFC FIRST, and other major banks.
 
 ---
 
-## Visuals
+## How It Works
 
 ```
 ┌─────────────────────────────────────────────────────┐
 │  📱 Phone receives SMS                              │
 │     ↓  MacroDroid forwards via HTTP POST            │
 │  ☁️  Railway webhook server (24/7)                  │
-│     ↓  Parses amount, merchant, bank, type          │
+│     ↓  Regex + Claude Haiku extracts fields         │
 │  🗄️  Supabase stores transaction                    │
 │     ↓  Every day at 10 AM IST                       │
-│  📧 Email: Daily Spend Summary                      │
+│  📧 Rich HTML email: Daily Spend Summary            │
 └─────────────────────────────────────────────────────┘
 ```
 
-**Daily email summary example:**
-```
-Subject: Daily Spend Summary — 2026-04-05
-
-Total Spent:    ₹1,250.00  (4 transactions)
-Total Received: ₹500.00    (1 credit)
-
-Breakdown:
-• Swati Jha       ₹10.00    IDFC FIRST  UPI
-• Swiggy          ₹340.00   HDFC        UPI
-• Amazon          ₹750.00   HDFC        UPI
-• ATM Withdrawal  ₹150.00   HDFC
-
-Net spend: ₹750.00
-```
+**Daily email includes:**
+- Total spend + transaction count
+- Snapshot cards: largest spend, UPI total, unidentified transactions
+- Per-transaction rows with badge (UPI/ATM/CRD), merchant, raw SMS, amount
+- Payment instrument breakdown (UPI / Card / Other)
+- Balance alert box for large credits
+- One-line AI summary
 
 ---
 
 ## Features
 
-- **Live SMS capture** — MacroDroid forwards every banking SMS to the cloud instantly
-- **AI-powered parsing** — Regex + Claude Haiku fallback extracts bank, amount, merchant, account, payment mode from any Indian bank SMS format
-- **Cloud deployment** — Runs 24/7 on Railway; laptop and hotspot not required
-- **Daily email summary** — Sent every day at 10:00 AM IST via Gmail SMTP
+- **Live SMS capture** — MacroDroid forwards every banking SMS to Railway over the internet; no shared Wi-Fi needed
+- **Smart parsing** — Regex extracts bank, amount, merchant, account, payment mode; Claude Haiku fills gaps for unknown formats
+- **LLM merchant recovery** — When a stored transaction has no merchant, Claude Haiku reads the raw SMS to find the payee before falling back to the bank name
+- **Skip non-transactions** — Future deductions (`will be deducted`), balance alerts, and clearing entries are automatically ignored
+- **Rich HTML email** — Styled daily summary with per-transaction detail, sent at 10 AM IST every day
+- **On-demand email** — Trigger a summary for any date from the command line
 - **Natural language Q&A** — Ask questions like *"How much did I spend on UPI this week?"* via local CLI
-- **Supabase storage** — Full transaction history with timestamps in IST
-- **Auto storage cleanup** — Deletes oldest records when Supabase free tier hits 80% capacity, always retaining last 30 days
-- **Multi-bank support** — HDFC, ICICI, SBI, Axis, Kotak, IDFC FIRST, Yes Bank, IndusInd, Paytm, PhonePe, Amazon Pay
+- **Template learning** — Unknown SMS formats are saved to Supabase; `learn_patterns.py` uses Claude Opus to suggest new regex patterns
+- **Supabase storage** — Full transaction history with IST timestamps
+- **Auto storage cleanup** — Deletes oldest records when Supabase free tier hits 80% capacity, retaining last 30 days
+- **Multi-bank support** — HDFC, ICICI (credit & debit cards), SBI, Axis, Kotak, IDFC FIRST, Yes Bank, IndusInd, Paytm, PhonePe, Amazon Pay
 
 ---
 
@@ -84,7 +79,7 @@ copy .env.example .env        # Windows
 # cp .env.example .env        # Mac/Linux
 ```
 
-Edit `.env` and fill in your keys:
+Edit `.env`:
 
 ```env
 ANTHROPIC_API_KEY=your_anthropic_key
@@ -104,27 +99,45 @@ WEBHOOK_SECRET=any_random_string   # optional
 
 ### 4. Set up Supabase schema
 
-In the [Supabase SQL Editor](https://supabase.com/dashboard), run the contents of `supabase/schema.sql`.
+In the [Supabase SQL Editor](https://supabase.com/dashboard), run the contents of `supabase/schema.sql`.  
+This creates three tables: `sms_messages`, `transactions`, and `unknown_templates`.
 
 ### 5. Configure MacroDroid on your Android phone
 
 Create a macro with:
-- **Trigger:** Incoming SMS
+- **Trigger:** SMS Received (all senders, or filter to bank shortcodes)
 - **Action:** HTTP POST to `https://your-railway-url.up.railway.app/webhook/sms`
 - **Body (JSON):**
   ```json
   {
-    "phoneNumber": "[incoming_sms_number]",
-    "message": "[incoming_sms_message]",
-    "receivedAt": "[triggertime_seconds]"
+    "phone number": "[trigger_number]",
+    "message": "[trigger_message]",
+    "received at": "[triggertime_seconds]"
   }
   ```
+
+> The webhook accepts both MacroDroid's default key format (`phone number`) and the SMS Gateway for Android camelCase format (`phoneNumber`).
+
+### 6. Deploy to Railway
+
+1. Push this repo to GitHub
+2. Create a new Railway project → Deploy from GitHub repo
+3. Add environment variables in Railway → Variables (same as `.env`)
+4. Generate a public domain under Railway → Settings → Networking
+5. Use that domain as the MacroDroid webhook URL
 
 ---
 
 ## Usage
 
-### Local interactive CLI (ask questions about your spending)
+### Trigger a summary email on demand
+
+```bash
+python trigger_summary.py                  # yesterday's summary
+python trigger_summary.py 2026-04-05       # specific date
+```
+
+### Local interactive CLI
 
 ```bash
 python cli.py
@@ -135,24 +148,18 @@ Example queries:
 You: What did I spend yesterday?
 You: Show me all UPI transactions this week
 You: Which merchant did I spend the most on in April?
-You: Did I get any credits this week?
-```
-
-### Trigger summary email on demand
-
-```bash
-python trigger_summary.py                  # email yesterday's summary now
-python trigger_summary.py 2026-04-05       # email summary for a specific date
 ```
 
 ### Review and improve SMS parsing patterns
 
 ```bash
-python learn_patterns.py                   # review all unrecognised templates
-python learn_patterns.py --sms "Your A/c XX5865 debited..."   # analyse one SMS
+python learn_patterns.py                          # review all unrecognised SMS templates
+python learn_patterns.py --sms "Your A/c XX5865 debited..."   # analyse a single SMS
 ```
 
-### One-shot daily summary (local, no email)
+Claude Opus reads the stored unknown SMS formats and suggests exact regex additions to add to `sms_parser.py`.
+
+### One-shot local summary (no email)
 
 ```bash
 python cli.py --summary
@@ -165,12 +172,22 @@ python cli.py --summary --date 2026-04-04
 python cli.py --import-file backup.xml
 ```
 
-### Cloud deployment (Railway)
+---
 
-The `server.py` entry point runs automatically on Railway — no interaction needed. It:
-- Receives live SMS via webhook
-- Sends daily email at 10 AM IST
-- Checks Supabase storage every 6 hours
+## SMS Formats Supported
+
+| Bank | Format detected |
+|---|---|
+| HDFC | UPI debit/credit, card spend, mandate |
+| ICICI | Credit card (`VM-ICICIT-S`), debit card |
+| IDFC FIRST | UPI debit (`IDFCBK`, `IDFCFB`) |
+| SBI, Axis, Kotak, Yes, IndusInd | Standard debit/credit alerts |
+| Any bank | Claude Haiku fallback for unknown formats |
+
+**Automatically skipped (not stored):**
+- `E-Mandate! Rs.X will be deducted` — future deduction notifications
+- Balance alerts (`low balance`, `available balance`, etc.)
+- Clearing/internal ledger entries `(clearing)`
 
 ---
 
@@ -178,13 +195,13 @@ The `server.py` entry point runs automatically on Railway — no interaction nee
 
 | Layer | Technology |
 |---|---|
-| AI / LLM | Claude Opus 4.6 (Q&A), Claude Haiku (SMS parsing) |
+| AI / LLM | Claude Opus 4.6 (Q&A + pattern learning), Claude Haiku (SMS parsing + merchant recovery) |
 | Backend | Python, FastAPI, Uvicorn |
 | Database | Supabase (PostgreSQL) |
 | Scheduler | APScheduler |
 | Cloud hosting | Railway |
 | SMS forwarding | MacroDroid (Android) |
-| Email | Gmail SMTP (smtplib) |
+| Email | Gmail SMTP — rich HTML template |
 | CLI | Rich |
 
 ---
@@ -196,24 +213,24 @@ sms-parser/
 ├── server.py              # Production entry point (Railway)
 ├── cli.py                 # Local interactive CLI
 ├── main.py                # Thin redirect → server.py (Railway auto-detects this)
-├── trigger_summary.py     # Send summary email on demand
-├── learn_patterns.py      # Review unknown templates, get regex suggestions
+├── trigger_summary.py     # Send HTML summary email on demand
+├── learn_patterns.py      # Review unknown SMS, get Claude regex suggestions
+├── test_email_template.py # Offline test for HTML email rendering
 ├── requirements.txt
 ├── railpack.json          # Railway build config
 ├── railpack.toml          # Railway start command
 ├── .env.example           # Environment variable template
-├── data/
-│   └── sample_sms.json    # Sample SMS for local testing
 ├── supabase/
-│   └── schema.sql         # Database schema (sms_messages, transactions, unknown_templates)
+│   └── schema.sql         # Tables: sms_messages, transactions, unknown_templates
 └── src/sms_parser/
-    ├── agent.py           # Claude Opus 4.6 Q&A agent
+    ├── agent.py           # Claude Opus 4.6 Q&A agent + one-line summary
+    ├── email_template.py  # HTML email builder and renderer
     ├── models.py          # SMSMessage & Transaction dataclasses
     ├── sms_parser.py      # Regex + Claude Haiku fallback SMS parser
-    ├── sms_reader.py      # Load SMS from JSON / Android XML
-    ├── supabase_store.py  # Supabase read/write, storage cleanup, unknown templates
-    ├── webhook_server.py  # FastAPI webhook endpoint
-    └── scheduler.py       # APScheduler jobs (daily summary, storage check)
+    ├── sms_reader.py      # Load SMS from JSON / Android XML backup
+    ├── supabase_store.py  # Supabase read/write, cleanup, unknown_templates
+    ├── webhook_server.py  # FastAPI webhook (supports MacroDroid + SMS Gateway)
+    └── scheduler.py       # APScheduler: daily email at 10 AM IST, storage check
 ```
 
 ---
@@ -225,16 +242,13 @@ Contributions are welcome. To get started:
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feature/your-feature`
 3. Make your changes with clear commit messages
-4. Push to your fork: `git push origin feature/your-feature`
-5. Open a Pull Request describing what you changed and why
-
-Please keep changes focused — one feature or fix per PR.
+4. Push and open a Pull Request
 
 ---
 
 ## License
 
-This project is licensed under the **MIT License** — free to use, modify, and distribute with attribution.
+MIT License — free to use, modify, and distribute with attribution.
 
 ---
 
