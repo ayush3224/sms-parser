@@ -51,6 +51,7 @@ def _sms_id(sender: str, body: str, ts: str) -> str:
 def create_app(
     on_sms: Callable[[SMSMessage], None],
     secret: Optional[str] = None,
+    on_summary: Optional[Callable] = None,
 ) -> FastAPI:
     """
     Build the FastAPI app.
@@ -63,7 +64,36 @@ def create_app(
 
     @app.get("/health")
     async def health():
-        return {"status": "ok"}
+        import datetime
+        return {
+            "status": "ok",
+            "utc_now": datetime.datetime.utcnow().isoformat() + "Z",
+            "ist_now": datetime.datetime.now(IST).strftime("%Y-%m-%d %H:%M:%S IST"),
+        }
+
+    @app.post("/trigger-summary")
+    async def trigger_summary(request: Request):
+        """Fire today's or yesterday's summary email on demand (no laptop needed)."""
+        if secret:
+            if request.headers.get("X-Secret", "") != secret:
+                raise HTTPException(status_code=401, detail="Invalid secret")
+        if on_summary is None:
+            raise HTTPException(status_code=503, detail="Summary callback not configured")
+        import datetime as _dt
+        # Default to yesterday IST; accept ?date=YYYY-MM-DD
+        params    = request.query_params
+        date_str  = params.get("date")
+        if date_str:
+            try:
+                target = _dt.date.fromisoformat(date_str)
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Bad date format, use YYYY-MM-DD")
+        else:
+            target = (_dt.datetime.now(tz=IST) - _dt.timedelta(days=1)).date()
+        # Run in background so the HTTP response returns immediately
+        import threading
+        threading.Thread(target=on_summary, args=(target,), daemon=True).start()
+        return {"status": "triggered", "date": str(target)}
 
     @app.post("/webhook/sms")
     async def receive_sms(request: Request):

@@ -88,28 +88,33 @@ def main() -> None:
 
     # --- daily summary callback: build HTML email and send it ---
     def on_summary(for_date) -> None:
-        from src.sms_parser.email_template import build_email_data
-        receiver = os.getenv("EMAIL_RECEIVER", "")
-        fresh_txns = store.load_all_transactions()
-        email_data = build_email_data(fresh_txns, for_date, receiver_email=receiver, api_key=api_key)
-        email_data.one_line_summary = agent.get_one_line_summary(email_data)
-        log.info(
-            "=== Daily Spend Summary (%s) === ₹%.0f across %d txns",
-            for_date, email_data.total_debit, email_data.txn_count,
-        )
-        _send_email_summary(email_data, for_date)
+        log.info("Daily summary job fired for %s", for_date)
+        try:
+            from src.sms_parser.email_template import build_email_data
+            receiver   = os.getenv("EMAIL_RECEIVER", "")
+            fresh_txns = store.load_all_transactions()
+            log.info("Loaded %d transactions for email", len(fresh_txns))
+            email_data = build_email_data(fresh_txns, for_date, receiver_email=receiver, api_key=api_key)
+            log.info("Email data built: ₹%.0f across %d txns", email_data.total_debit, email_data.txn_count)
+            email_data.one_line_summary = agent.get_one_line_summary(email_data)
+            _send_email_summary(email_data, for_date)
+            log.info("Daily summary for %s completed successfully", for_date)
+        except Exception:
+            log.exception("CRITICAL: on_summary failed for %s — see traceback above", for_date)
 
     def on_storage_warning(message: str) -> None:
         log.warning("Storage cleanup: %s", message)
 
     # --- scheduler ---
-    start_daily_scheduler(
+    scheduler = start_daily_scheduler(
         agent=agent,
         on_summary=on_summary,
         store=store,
         on_storage_warning=on_storage_warning,
     )
-    log.info("Scheduler started — daily summary at 10:00 AM IST, storage check every 6 h")
+    # Log next fire time so Railway logs confirm the scheduler is alive
+    for job in scheduler.get_jobs():
+        log.info("Scheduled job '%s' — next run: %s", job.name, job.next_run_time)
 
     # --- SMS ingestion callback ---
     def on_sms(sms: SMSMessage) -> None:
@@ -123,7 +128,7 @@ def main() -> None:
             log.info("SMS received from %s (no transaction parsed)", sms.sender)
 
     # --- start webhook server (blocking — keeps the process alive) ---
-    app = create_app(on_sms=on_sms, secret=webhook_secret)
+    app = create_app(on_sms=on_sms, secret=webhook_secret, on_summary=on_summary)
     log.info("Starting webhook server on port %d", port)
     uvicorn.run(app, host="0.0.0.0", port=port)
 
