@@ -68,7 +68,6 @@ def main() -> None:
     import uvicorn
     from src.sms_parser.agent          import SMSSpendAgent
     from src.sms_parser.models         import SMSMessage
-    from src.sms_parser.scheduler      import start_daily_scheduler
     from src.sms_parser.sms_parser     import SMSParser
     from src.sms_parser.supabase_store import SupabaseStore
     from src.sms_parser.webhook_server import create_app
@@ -102,19 +101,15 @@ def main() -> None:
         except Exception:
             log.exception("CRITICAL: on_summary failed for %s — see traceback above", for_date)
 
-    def on_storage_warning(message: str) -> None:
-        log.warning("Storage cleanup: %s", message)
-
-    # --- scheduler ---
-    scheduler = start_daily_scheduler(
-        agent=agent,
-        on_summary=on_summary,
-        store=store,
-        on_storage_warning=on_storage_warning,
-    )
-    # Log next fire time so Railway logs confirm the scheduler is alive
-    for job in scheduler.get_jobs():
-        log.info("Scheduled job '%s' — next run: %s", job.name, job.next_run_time)
+    def on_storage_check() -> None:
+        try:
+            cleaned, msg = store.cleanup_if_needed()
+            if cleaned:
+                log.warning("Storage cleanup: %s", msg)
+            else:
+                log.debug("Storage check: %s", msg)
+        except Exception:
+            log.exception("Storage check failed")
 
     # --- SMS ingestion callback ---
     def on_sms(sms: SMSMessage) -> None:
@@ -127,8 +122,13 @@ def main() -> None:
         else:
             log.info("SMS received from %s (no transaction parsed)", sms.sender)
 
-    # --- start webhook server (blocking — keeps the process alive) ---
-    app = create_app(on_sms=on_sms, secret=webhook_secret, on_summary=on_summary)
+    # --- start webhook server (blocking — scheduling runs inside uvicorn's event loop) ---
+    app = create_app(
+        on_sms=on_sms,
+        secret=webhook_secret,
+        on_summary=on_summary,
+        on_storage_check=on_storage_check,
+    )
     log.info("Starting webhook server on port %d", port)
     uvicorn.run(app, host="0.0.0.0", port=port)
 
