@@ -20,22 +20,45 @@ log = logging.getLogger(__name__)
 
 
 def _send_email_summary(email_data, for_date) -> None:
-    """Send daily summary as an HTML email via Gmail SMTP. Skips silently if not configured."""
+    """Send daily summary as HTML email. Uses Resend API if configured, else Gmail SMTP."""
+    from src.sms_parser.email_template import render_html_email
+
+    receiver  = os.getenv("EMAIL_RECEIVER")
+    if not receiver:
+        log.warning("EMAIL_RECEIVER not set — skipping email")
+        return
+
+    subject   = f"Daily Spend Summary — {for_date}"
+    html_body = render_html_email(email_data)
+
+    # --- Resend API (works on Railway; preferred) ---
+    resend_key = os.getenv("RESEND_API_KEY")
+    if resend_key:
+        try:
+            import resend as _resend
+            _resend.api_key = resend_key
+            sender = os.getenv("EMAIL_SENDER") or "Expense Tracker <onboarding@resend.dev>"
+            _resend.Emails.send({
+                "from":    sender,
+                "to":      [receiver],
+                "subject": subject,
+                "html":    html_body,
+            })
+            log.info("Daily summary sent via Resend to %s", receiver)
+            return
+        except Exception as exc:
+            log.warning("Resend failed: %s — falling back to SMTP", exc)
+
+    # --- Gmail SMTP fallback (local dev; blocked on Railway) ---
+    sender   = os.getenv("EMAIL_SENDER")
+    password = os.getenv("EMAIL_PASSWORD")
+    if not (sender and password):
+        log.warning("No email transport configured (set RESEND_API_KEY or EMAIL_SENDER+EMAIL_PASSWORD)")
+        return
+
     import smtplib
     from email.mime.multipart import MIMEMultipart
     from email.mime.text import MIMEText
-
-    from src.sms_parser.email_template import render_html_email
-
-    sender   = os.getenv("EMAIL_SENDER")    # your Gmail address
-    password = os.getenv("EMAIL_PASSWORD")  # Gmail App Password
-    receiver = os.getenv("EMAIL_RECEIVER")  # where to send (can be same as sender)
-
-    if not (sender and password and receiver):
-        return  # email not configured — skip silently
-
-    subject  = f"Daily Spend Summary — {for_date}"
-    html_body = render_html_email(email_data)
 
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
@@ -47,7 +70,7 @@ def _send_email_summary(email_data, for_date) -> None:
         with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
             smtp.login(sender, password)
             smtp.sendmail(sender, receiver, msg.as_string())
-        log.info("Daily summary emailed to %s", receiver)
+        log.info("Daily summary sent via SMTP to %s", receiver)
     except Exception as exc:
         log.warning("Failed to send summary email: %s", exc)
 

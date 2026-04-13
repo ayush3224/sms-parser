@@ -3,6 +3,7 @@ python-dotenv>=1.0.0
 apscheduler>=3.10.0
 rich>=13.7.0
 pytz>=2024.1
+resend>=2.0.0
 
 # Supabase storage
 supabase>=2.4.0
