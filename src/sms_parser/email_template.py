@@ -319,7 +319,15 @@ def build_email_data(
 # Bar chart renderer
 # ---------------------------------------------------------------------------
 
-def _render_bar_chart(bars: List[BarDay], max_h: int = 56) -> str:
+def _fmt_k(amount: float) -> str:
+    """Format amount compactly: 1200 -> '1.2k', 800 -> '800'."""
+    if amount >= 1000:
+        k = amount / 1000
+        return f"{k:.0f}k" if k == int(k) else f"{k:.1f}k"
+    return f"{amount:.0f}"
+
+
+def _render_bar_chart(bars: List[BarDay], max_h: int = 56, show_values: bool = False) -> str:
     """Render a bottom-aligned bar chart as an email-compatible HTML table."""
     if not bars:
         return ""
@@ -335,7 +343,7 @@ def _render_bar_chart(bars: List[BarDay], max_h: int = 56) -> str:
         spacer_h  = max_h - bar_h
 
         if bar.is_highlighted:
-            bar_color   = "#B91C1C"   # red — matches the debit amount colour
+            bar_color   = "#B91C1C"
             label_color = "#B91C1C"
             label_w     = "700"
         elif bar.amount > 0:
@@ -343,15 +351,24 @@ def _render_bar_chart(bars: List[BarDay], max_h: int = 56) -> str:
             label_color = "#888"
             label_w     = "400"
         else:
-            bar_color   = "#e8e8e3"   # light stub for zero / future days
+            bar_color   = "#e8e8e3"
             label_color = "#ccc"
             label_w     = "400"
 
         tip = f"Rs.{bar.amount:,.0f} - {bar.date_str}" if bar.amount > 0 else bar.date_str
+
+        value_html = ""
+        if show_values and bar.amount > 0:
+            value_html = (
+                f'<div style="font-size:7px;color:{label_color};font-weight:{label_w};'
+                f'line-height:1;padding-bottom:2px;white-space:nowrap;">{_fmt_k(bar.amount)}</div>'
+            )
+
         cells += (
             f'<td style="vertical-align:bottom;text-align:center;padding:0 1px;">'
             f'<div title="{e(tip)}">'
-            f'<div style="height:{spacer_h}px;"></div>'
+            f'<div style="height:{spacer_h}px;display:flex;align-items:flex-end;'
+            f'justify-content:center;">{value_html}</div>'
             f'<div style="background:{bar_color};height:{bar_h}px;min-height:2px;'
             f'border-radius:2px 2px 0 0;"></div>'
             f'<div style="font-size:7px;color:{label_color};font-weight:{label_w};'
@@ -576,15 +593,10 @@ def render_html_email(data: EmailData) -> str:
                         color:#c0c0ba;margin:28px 0 14px;">By Payment Instrument</div>
             {chips_html}
 
-            <!-- THIS MONTH -->
-            <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;
-                        color:#c0c0ba;margin:28px 0 10px;">This Month</div>
-            {_render_bar_chart(data.monthly_bars, max_h=56)}
-
             <!-- THIS WEEK -->
             <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;
-                        color:#c0c0ba;margin:24px 0 10px;">This Week</div>
-            {_render_bar_chart(data.weekly_bars, max_h=56)}
+                        color:#c0c0ba;margin:28px 0 10px;">This Week</div>
+            {_render_bar_chart(data.weekly_bars, max_h=56, show_values=True)}
 
             {credit_alert_html}
             {one_liner_html}
