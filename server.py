@@ -37,9 +37,8 @@ def _send_email_summary(email_data, for_date) -> None:
         try:
             import resend as _resend
             _resend.api_key = resend_key
-            sender = os.getenv("EMAIL_SENDER") or "Expense Tracker <onboarding@resend.dev>"
             _resend.Emails.send({
-                "from":    sender,
+                "from":    "Expense Tracker <onboarding@resend.dev>",
                 "to":      [receiver],
                 "subject": subject,
                 "html":    html_body,
