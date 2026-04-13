@@ -184,7 +184,7 @@ html = et.render_html_email(email_data)
 
 import pathlib
 out = str(pathlib.Path(__file__).parent / "email_preview.html")
-with open(out, "w", encoding="utf-8") as f:
+with open(out, "w", encoding="utf-8-sig") as f:
     f.write(html)
 
 print(f"HTML written to {out}")

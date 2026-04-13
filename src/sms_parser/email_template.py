@@ -347,7 +347,7 @@ def _render_bar_chart(bars: List[BarDay], max_h: int = 56) -> str:
             label_color = "#ccc"
             label_w     = "400"
 
-        tip = f"₹{bar.amount:,.0f} · {bar.date_str}" if bar.amount > 0 else bar.date_str
+        tip = f"Rs.{bar.amount:,.0f} - {bar.date_str}" if bar.amount > 0 else bar.date_str
         cells += (
             f'<td style="vertical-align:bottom;text-align:center;padding:0 1px;">'
             f'<div title="{e(tip)}">'
@@ -524,7 +524,7 @@ def render_html_email(data: EmailData) -> str:
       <table width="600" cellpadding="0" cellspacing="0" role="presentation"
              style="max-width:600px;width:100%;">
 
-        <!-- ═══ HEADER ═══ -->
+        <!-- === HEADER === -->
         <tr>
           <td style="background:#111111;padding:32px 40px 26px;
                      border-radius:12px 12px 0 0;">
@@ -539,7 +539,7 @@ def render_html_email(data: EmailData) -> str:
           </td>
         </tr>
 
-        <!-- ═══ BODY ═══ -->
+        <!-- === BODY === -->
         <tr>
           <td style="background:#ffffff;padding:40px 40px 36px;">
 
@@ -592,7 +592,7 @@ def render_html_email(data: EmailData) -> str:
           </td>
         </tr>
 
-        <!-- ═══ FOOTER ═══ -->
+        <!-- === FOOTER === -->
         <tr>
           <td style="background:#f5f5f0;padding:16px 40px;
                      border-radius:0 0 12px 12px;">
