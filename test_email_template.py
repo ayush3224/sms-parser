@@ -117,7 +117,7 @@ def patched_build(transactions, for_date, receiver_email=""):
     def pct(a, b): return round(a/b*100) if b > 0 else 0
 
     return et.EmailData(
-        date_str             = for_date.strftime("%-d %B %Y"),
+        date_str             = et._strftime_no_pad(datetime.combine(for_date, datetime.min.time()), "%-d %B %Y"),
         date_short           = for_date.strftime("%d %b %Y"),
         day_of_week          = for_date.strftime("%A"),
         total_debit          = total_debit,
