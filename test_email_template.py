@@ -96,7 +96,7 @@ def patched_build(transactions, for_date, receiver_email=""):
 
     rows = []
     for t in sorted(day_debits, key=lambda x: x.timestamp, reverse=True):
-        time_str = t.timestamp.astimezone(IST).strftime("%-I:%M %p")
+        time_str = et._strftime_no_pad(t.timestamp.astimezone(IST), "%-I:%M %p")
         rows.append(et.EmailRow(
             merchant      = t.merchant or "Unknown",
             amount        = t.amount,
