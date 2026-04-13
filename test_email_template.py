@@ -138,6 +138,16 @@ def patched_build(transactions, for_date, receiver_email=""):
         credit_alerts        = credit_alerts,
         one_line_summary     = "You spent ₹4,610 across 5 transactions on 06 Apr — mostly UPI payments.",
         receiver_email       = receiver_email,
+        monthly_bars         = [et.BarDay(label=str(d) if d in (1,5,10,15,20,25,30) else "",
+                                          amount=float((d % 5) * 400),
+                                          is_highlighted=(d == 6),
+                                          date_str=f"{d:02d} Apr")
+                                for d in range(1, 31)],
+        weekly_bars          = [et.BarDay(label=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"][i],
+                                          amount=float(i * 600),
+                                          is_highlighted=(i == 6),
+                                          date_str=f"0{i+1} Apr")
+                                for i in range(7)],
     )
 
 et.build_email_data = patched_build

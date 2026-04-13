@@ -9,8 +9,9 @@ Usage:
 """
 
 import html as _html
+from calendar import monthrange
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, timedelta
 from typing import List, Optional
 
 import json as _json
@@ -85,6 +86,14 @@ def _pct(part: float, total: float) -> int:
 # ---------------------------------------------------------------------------
 
 @dataclass
+class BarDay:
+    label:          str    # display label ("1", "Mon", etc.) — empty = no label
+    amount:         float  # total debit for this day
+    is_highlighted: bool   # True for the summary date (shown in red)
+    date_str:       str    # "06 Apr" — used in bar title tooltip
+
+
+@dataclass
 class EmailRow:
     merchant:     str
     amount:       float
@@ -120,6 +129,8 @@ class EmailData:
     credit_alerts:       List[dict]     # [{"amount": x, "merchant": y, "raw_sms": z}]
     one_line_summary:    str
     receiver_email:      str
+    monthly_bars:        List[BarDay]  # day 1 → last day of month
+    weekly_bars:         List[BarDay]  # last 7 days ending on for_date
 
 
 # ---------------------------------------------------------------------------
@@ -237,6 +248,46 @@ def build_email_data(
         for t in credits
     ]
 
+    # ── Bar chart data ─────────────────────────────────────────────────────
+    from .models import TransactionType as _TT
+
+    # All debits across all time (for chart aggregation)
+    all_debits = [t for t in transactions if t.transaction_type == _TT.DEBIT]
+
+    # Group all debits by IST date
+    date_totals: dict = {}
+    for t in all_debits:
+        d = t.timestamp.astimezone(IST).date()
+        date_totals[d] = date_totals.get(d, 0.0) + t.amount
+
+    # Monthly bars: day 1 → last day of for_date's month
+    year, month     = for_date.year, for_date.month
+    _, last_day     = monthrange(year, month)
+    monthly_bars: List[BarDay] = []
+    for day_num in range(1, last_day + 1):
+        d   = date(year, month, day_num)
+        amt = date_totals.get(d, 0.0)
+        # Show label every 5 days and on the last day
+        show = day_num == 1 or day_num % 5 == 0 or day_num == last_day
+        monthly_bars.append(BarDay(
+            label          = str(day_num) if show else "",
+            amount         = amt,
+            is_highlighted = (d == for_date),
+            date_str       = d.strftime("%d %b"),
+        ))
+
+    # Weekly bars: last 7 days ending on for_date
+    weekly_bars: List[BarDay] = []
+    for i in range(6, -1, -1):
+        d   = for_date - timedelta(days=i)
+        amt = date_totals.get(d, 0.0)
+        weekly_bars.append(BarDay(
+            label          = d.strftime("%a"),   # "Mon", "Tue" …
+            amount         = amt,
+            is_highlighted = (d == for_date),
+            date_str       = d.strftime("%d %b"),
+        ))
+
     return EmailData(
         date_str             = _strftime_no_pad(for_date, "%-d %B %Y"),
         date_short           = for_date.strftime("%d %b %Y"),
@@ -259,6 +310,60 @@ def build_email_data(
         credit_alerts        = credit_alerts,
         one_line_summary     = "",
         receiver_email       = receiver_email,
+        monthly_bars         = monthly_bars,
+        weekly_bars          = weekly_bars,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Bar chart renderer
+# ---------------------------------------------------------------------------
+
+def _render_bar_chart(bars: List[BarDay], max_h: int = 56) -> str:
+    """Render a bottom-aligned bar chart as an email-compatible HTML table."""
+    if not bars:
+        return ""
+    e = _html.escape
+    max_amt = max((b.amount for b in bars), default=0.0) or 1.0
+
+    cells = ""
+    for bar in bars:
+        if bar.amount > 0:
+            bar_h = max(4, round(bar.amount / max_amt * max_h))
+        else:
+            bar_h = 2  # tiny stub so future/zero days are still visible
+        spacer_h  = max_h - bar_h
+
+        if bar.is_highlighted:
+            bar_color   = "#B91C1C"   # red — matches the debit amount colour
+            label_color = "#B91C1C"
+            label_w     = "700"
+        elif bar.amount > 0:
+            bar_color   = "#2d2d2d"
+            label_color = "#888"
+            label_w     = "400"
+        else:
+            bar_color   = "#e8e8e3"   # light stub for zero / future days
+            label_color = "#ccc"
+            label_w     = "400"
+
+        tip = f"₹{bar.amount:,.0f} · {bar.date_str}" if bar.amount > 0 else bar.date_str
+        cells += (
+            f'<td style="vertical-align:bottom;text-align:center;padding:0 1px;">'
+            f'<div title="{e(tip)}">'
+            f'<div style="height:{spacer_h}px;"></div>'
+            f'<div style="background:{bar_color};height:{bar_h}px;min-height:2px;'
+            f'border-radius:2px 2px 0 0;"></div>'
+            f'<div style="font-size:7px;color:{label_color};font-weight:{label_w};'
+            f'padding-top:3px;line-height:1;white-space:nowrap;">{e(bar.label)}</div>'
+            f'</div></td>'
+        )
+
+    return (
+        "<table width='100%' cellpadding='0' cellspacing='0' role='presentation'"
+        " style='border-collapse:collapse;'>"
+        f"<tr>{cells}</tr>"
+        "</table>"
     )
 
 
@@ -470,6 +575,16 @@ def render_html_email(data: EmailData) -> str:
             <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;
                         color:#c0c0ba;margin:28px 0 14px;">By Payment Instrument</div>
             {chips_html}
+
+            <!-- THIS MONTH -->
+            <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;
+                        color:#c0c0ba;margin:28px 0 10px;">This Month</div>
+            {_render_bar_chart(data.monthly_bars, max_h=56)}
+
+            <!-- THIS WEEK -->
+            <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;
+                        color:#c0c0ba;margin:24px 0 10px;">This Week</div>
+            {_render_bar_chart(data.weekly_bars, max_h=56)}
 
             {credit_alert_html}
             {one_liner_html}
