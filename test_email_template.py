@@ -182,7 +182,8 @@ txns = [
 email_data = patched_build(txns, TARGET, receiver_email="ayush@example.com")
 html = et.render_html_email(email_data)
 
-out = "/tmp/email_preview.html"
+import tempfile, pathlib
+out = str(pathlib.Path(tempfile.gettempdir()) / "email_preview.html")
 with open(out, "w") as f:
     f.write(html)
 
