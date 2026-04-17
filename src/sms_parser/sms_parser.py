@@ -51,6 +51,7 @@ _BANK_SENDERS = {
     'Paytm': ['PAYTM', 'PYTM'],
     'PhonePe': ['PHONPE', 'PHONEPE'],
     'Amazon Pay': ['AMAZONPAY', 'AMZNPAY'],
+    'SBM': ['SBMIND', 'SBMBANK', 'SBMB'],
 }
 
 _PAYMENT_MODES = [
@@ -65,7 +66,25 @@ _PAYMENT_MODES = [
     ('Net Banking', r'\bnet\s*banking\b|\bnetbanking\b'),
 ]
 
+_MERCHANT_NORMALISE = {
+    'AMAZONIN':  'Amazon India',
+    'AMZNIN':    'Amazon India',
+    'AMZNMKTP':  'Amazon',
+    'FLIPKART':  'Flipkart',
+    'SWIGGY':    'Swiggy',
+    'ZOMATO':    'Zomato',
+    'MYNTRA':    'Myntra',
+    'NYKAA':     'Nykaa',
+    'BIGBASKET': 'BigBasket',
+    'BLINKIT':   'Blinkit',
+    'ZEPTO':     'Zepto',
+    'DUNZO':     'Dunzo',
+    'PAYTMMALL': 'Paytm Mall',
+}
+
 _MERCHANT_PATTERNS = [
+    # "paid INR 271.00 at AMAZONIN through your Card" (SBM / card SMS)
+    r'\bpaid\s+(?:INR|Rs\.?|₹)\s*[0-9,.]+\s+at\s+([A-Z][A-Za-z0-9]{2,30})\s+(?:through|via|using)\b',
     # "To INDmoney 06/04/26" or "To Swati Jha Ref"
     r'[Tt]o\s+([A-Z][A-Za-z][A-Za-z0-9\s&\-\.\']{1,38}?)(?:\s+[0-9]{2}/[0-9]{2}|\s+Ref\b|\s+Not\b|\s+UPI\b|\s+via\b|\.|$)',
     # "at/to MERCHANT" generic
@@ -237,7 +256,8 @@ class SMSParser:
             if m:
                 merchant = m.group(1).strip().rstrip('.')
                 if 3 <= len(merchant) <= 50:
-                    return merchant
+                    normalised = _MERCHANT_NORMALISE.get(merchant.upper())
+                    return normalised if normalised else merchant
         return None
 
     def _extract_account(self, text: str) -> Optional[str]:
