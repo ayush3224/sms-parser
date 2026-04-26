@@ -22,69 +22,106 @@ _DEBIT_KEYWORDS = [
 ]
 _CREDIT_KEYWORDS = [
     'credited', 'received', 'deposited', 'refund', 'cashback', 'reversed',
+    'added to',   # Zomato Money / wallet cashbacks
 ]
 
-# Messages matching any of these patterns are NOT real transactions and must be skipped
+# Messages matching any of these are NOT real transactions — skip entirely
 _SKIP_PATTERNS = [
     # Future / scheduled deductions (not yet executed)
     r'\bwill\s+be\s+(?:deducted|charged|debited|processed)\b',
     r'\bscheduled\s+(?:for|on)\b',
+    r'\bfalling\s+due\b',                          # PNB loan instalment notices
+    # OTP messages (not transaction confirmations)
+    r'\bOne-Time\s+Password\b',                    # ICICI OTP
+    r'\bOTP\s+is\s+\d+\b',                        # HDFC OTP
     # Balance-only alerts
     r'\bbalance\s+(?:is|alert|update|intimation)\b',
     r'\bavailable\s+balance\b',
     r'\baccount\s+balance\b',
     r'\bcurrent\s+balance\b',
     r'\blow\s+balance\b',
+    # Investment / portfolio statements (not cash transactions)
+    r'\bInvestment\s+value\s+in\s+Tier\b',         # NPS balance
+    r'\btraded\s+value\s+for\b',                   # NSE trade notification
+    # Standing instruction activations (not actual debits)
+    r'\bactivated\s+Standing\s+Instruction\b',
     # Bank "clearing" / internal ledger credits
     r'\(clearing\)',
 ]
 
 _BANK_SENDERS = {
-    'HDFC': ['HDFCBK', 'HDFCBANK', 'HDFC'],
-    'ICICI': ['ICICIB', 'ICICIBANK', 'ICICIC', 'ICICIT', 'ICICI'],
-    'SBI': ['SBIBK', 'SBIINB', 'SBI', 'STATEBK'],
-    'Axis': ['AXISBK', 'AXISBANK', 'AXIS'],
-    'Kotak': ['KOTAKB', 'KOTAK'],
-    'Yes Bank': ['YESBK', 'YESBANK'],
-    'IndusInd': ['INDUSBK', 'INDUSIND'],
-    'IDFC': ['IDFCBK', 'IDFCFB', 'IDFC FIRST', 'IDFCFIRST'],
-    'Paytm': ['PAYTM', 'PYTM'],
-    'PhonePe': ['PHONPE', 'PHONEPE'],
+    'HDFC':       ['HDFCBK', 'HDFCBANK', 'HDFC'],
+    'ICICI':      ['ICICIB', 'ICICIBANK', 'ICICIC', 'ICICIT', 'ICICI'],
+    'SBI':        ['SBIBK', 'SBIINB', 'SBI', 'STATEBK'],
+    'Axis':       ['AXISBK', 'AXISBANK', 'AXIS'],
+    'Kotak':      ['KOTAKB', 'KOTAK'],
+    'Yes Bank':   ['YESBK', 'YESBANK'],
+    'IndusInd':   ['INDUSBK', 'INDUSIND'],
+    'IDFC':       ['IDFCBK', 'IDFCFB', 'IDFC FIRST', 'IDFCFIRST'],
+    'PNB':        ['PNBSMS', 'PNBBANK', 'PNB'],
+    'Paytm':      ['PAYTM', 'PYTM'],
+    'PhonePe':    ['PHONPE', 'PHONEPE'],
     'Amazon Pay': ['AMAZONPAY', 'AMZNPAY'],
-    'SBM': ['SBMIND', 'SBMBANK', 'SBMB'],
+    'SBM':        ['SBMIND', 'SBMBANK', 'SBMB'],
+    'Zomato':     ['ZOMATO'],
+    'ITD':        ['ITDCPC'],                       # Income Tax Dept challan SMS
 }
 
 _PAYMENT_MODES = [
-    ('UPI', r'\bUPI\b|\bMandate\b'),
-    ('NEFT', r'\bNEFT\b'),
-    ('IMPS', r'\bIMPS\b'),
-    ('RTGS', r'\bRTGS\b'),
-    # "spent using ICICI Bank Card" / "using HDFC Credit Card"
-    ('Credit Card', r'\bcredit\s+card\b|\busing\s+\w+(?:\s+bank)?\s+card\b'),
-    ('Debit Card', r'\bdebit\s+card\b'),
-    ('ATM', r'\bATM\b'),
+    ('UPI',         r'\bUPI\b|\bMandate\b'),
+    ('NEFT',        r'\bNEFT\b'),
+    ('IMPS',        r'\bIMPS\b'),
+    ('RTGS',        r'\bRTGS\b'),
+    # "spent using ICICI Bank Card" / "On HDFC Bank Card" / "using HDFC Credit Card"
+    ('Credit Card', r'\bcredit\s+card\b|\busing\s+\w+(?:\s+bank)?\s+card\b|\bBank\s+Card\b'),
+    ('Debit Card',  r'\bdebit\s+card\b'),
+    ('ATM',         r'\bATM\b'),
     ('Net Banking', r'\bnet\s*banking\b|\bnetbanking\b'),
 ]
 
 _MERCHANT_NORMALISE = {
-    'AMAZONIN':  'Amazon India',
-    'AMZNIN':    'Amazon India',
-    'AMZNMKTP':  'Amazon',
-    'FLIPKART':  'Flipkart',
-    'SWIGGY':    'Swiggy',
-    'ZOMATO':    'Zomato',
-    'MYNTRA':    'Myntra',
-    'NYKAA':     'Nykaa',
-    'BIGBASKET': 'BigBasket',
-    'BLINKIT':   'Blinkit',
-    'ZEPTO':     'Zepto',
-    'DUNZO':     'Dunzo',
-    'PAYTMMALL': 'Paytm Mall',
+    # E-commerce
+    'AMAZONIN':          'Amazon India',
+    'AMZNIN':            'Amazon India',
+    'AMZNMKTP':          'Amazon',
+    'AMAZON PAY IN G':   'Amazon Pay',
+    'FLIPKART':          'Flipkart',
+    'FIRSTCRY':          'FirstCry',
+    'MYNTRA':            'Myntra',
+    'NYKAA':             'Nykaa',
+    # Food & delivery
+    'SWIGGY':            'Swiggy',
+    'ZOMATO':            'Zomato',
+    'ZOMATO MONEY':      'Zomato',
+    'DUNZO':             'Dunzo',
+    # Grocery / quick commerce
+    'BIGBASKET':         'BigBasket',
+    'BLINKIT':           'Blinkit',
+    'ZEPTO':             'Zepto',
+    # Payments / wallets
+    'PAYTMMALL':         'Paytm Mall',
+    'GOOGLE PLAY':       'Google Play',
+    # Finance / investments
+    'INDMONEY':          'INDmoney',
+    'INDSTOCKS':         'INDmoney',
+    # Government
+    'CHALLAN PAYMENT':   'Income Tax',
+    # Local merchants (user-identified)
+    'ARTICULTURAL FRU':  'Amma Shop',
+    'PAPER AND PIE':     'Paper & Pie',
 }
 
 _MERCHANT_PATTERNS = [
+    # HDFC card: "Spent Rs.X On HDFC Bank Card 8229 At ..MERCHANTNAME_"
+    r'At\s+\.+([A-Z][A-Za-z0-9\s&\'\-]+?)(?:_|\s+On\s+\d{4})',
+    # "Mandate Set Rs.X For MERCHANT From HDFC" (Google Play auto-pay etc.) — multiline SMS
+    r'\bMandate\s+Set\b[\s\S]+?For\s+([A-Za-z][A-Za-z0-9\s]+?)\s+From\b',
     # "paid INR 271.00 at AMAZONIN through your Card" (SBM / card SMS)
     r'\bpaid\s+(?:INR|Rs\.?|₹)\s*[0-9,.]+\s+at\s+([A-Z][A-Za-z0-9]{2,30})\s+(?:through|via|using)\b',
+    # "Rs. 25.88 added to Zomato Money" — wallet cashback / refund credits
+    r'\badded\s+to\s+([A-Za-z]+(?:\s+Money|\s+Wallet)?)\b',
+    # "Challan payment" → Income Tax
+    r'\b(Challan\s+payment)\b',
     # "To INDmoney 06/04/26" or "To Swati Jha Ref"
     r'[Tt]o\s+([A-Z][A-Za-z][A-Za-z0-9\s&\-\.\']{1,38}?)(?:\s+[0-9]{2}/[0-9]{2}|\s+Ref\b|\s+Not\b|\s+UPI\b|\s+via\b|\.|$)',
     # "at/to MERCHANT" generic
@@ -103,8 +140,8 @@ _ACCOUNT_PATTERNS = [
     r'(?:a/c|acct?|account|card)\s*\*+([0-9]{4})\b',
     r'\bXX([0-9]{4})\b',
     r'\bA/c\s+XX([0-9]{4})\b',
-    r'\bA/c\s+([0-9]{4})\b',        # bare "A/c 1029" without XX
-    r'[Cc]ard\s+XX([0-9]{4})\b',    # "Card XX3008"
+    r'\bA/c\s+([0-9]{4})\b',
+    r'[Cc]ard\s+XX([0-9]{4})\b',
     r'\*+([0-9]{4})\b',
 ]
 
@@ -135,14 +172,9 @@ class SMSParser:
         self._api_key = api_key
 
     def parse(self, sms: SMSMessage, on_unknown_template=None) -> Optional[Transaction]:
-        """Return a Transaction if the SMS looks like a financial transaction, else None.
-
-        on_unknown_template: optional callback(body, sender, bank, merchant, missing_fields)
-            called when Claude fallback was needed — use this to persist the template for review.
-        """
+        """Return a Transaction if the SMS looks like a financial transaction, else None."""
         body = sms.body
 
-        # Skip non-transaction messages: future deductions, balance alerts, clearing entries
         if self._should_skip(body):
             return None
 
@@ -156,7 +188,6 @@ class SMSParser:
         payment_mode  = self._extract_payment_mode(body)
         account_last4 = self._extract_account(body)
 
-        # Detect which fields regex missed
         missing = [f for f, v in [("bank", bank), ("merchant", merchant)] if not v]
         needs_claude = bool(missing) or sender.lower() in ("unknown", "")
 
@@ -168,7 +199,6 @@ class SMSParser:
                 payment_mode  = payment_mode  or claude_data.get("payment_mode")
                 account_last4 = account_last4 or claude_data.get("account_last4")
 
-            # Notify caller so the template can be saved for pattern learning
             if on_unknown_template and missing:
                 try:
                     on_unknown_template(
@@ -224,7 +254,6 @@ class SMSParser:
     # ------------------------------------------------------------------
 
     def _should_skip(self, text: str) -> bool:
-        """Return True for non-transaction messages (future deductions, balance alerts)."""
         for pattern in _SKIP_PATTERNS:
             if re.search(pattern, text, re.IGNORECASE):
                 return True
@@ -255,6 +284,8 @@ class SMSParser:
             m = re.search(pattern, text, re.IGNORECASE)
             if m:
                 merchant = m.group(1).strip().rstrip('.')
+                # Strip HDFC card store/branch codes e.g. "FIRSTCRY 2004 DA" → "FIRSTCRY"
+                merchant = re.sub(r'\s+\d{4}\s+[A-Z]{2,}$', '', merchant).strip()
                 if 3 <= len(merchant) <= 50:
                     normalised = _MERCHANT_NORMALISE.get(merchant.upper())
                     return normalised if normalised else merchant
