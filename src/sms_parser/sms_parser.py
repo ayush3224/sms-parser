@@ -25,7 +25,7 @@ _CREDIT_KEYWORDS = [
     'added to',   # Zomato Money / wallet cashbacks
 ]
 
-# Messages matching any of these are NOT real transactions — skip entirely
+# Hard skips — unconditionally non-transactional regardless of other content
 _SKIP_PATTERNS = [
     # Future / scheduled deductions (not yet executed)
     r'\bwill\s+be\s+(?:deducted|charged|debited|processed)\b',
@@ -34,13 +34,6 @@ _SKIP_PATTERNS = [
     # OTP messages (not transaction confirmations)
     r'\bOne-Time\s+Password\b',                    # ICICI OTP
     r'\bOTP\s+is\s+\d+\b',                        # HDFC OTP
-    # Balance-only alerts
-    r'\bAvailable\s+Bal\b',                        # HDFC "Available Bal in A/c"
-    r'\bbalance\s+(?:is|alert|update|intimation)\b',
-    r'\bavailable\s+balance\b(?!\s+Rs|\s+[0-9,])', # exclude post-txn balance lines e.g. IDFC
-    r'\baccount\s+balance\b',
-    r'\bcurrent\s+balance\b',
-    r'\blow\s+balance\b',
     # Promotional / marketing SMS (not transactions)
     r'\bGet\s+Rs\.?\s*\d+\s+off\b',               # "Get Rs. 350 OFF"
     r'\bTnc\s+Apply\b',                            # any promo ending with T&C notice
@@ -52,6 +45,24 @@ _SKIP_PATTERNS = [
     # Bank "clearing" / internal ledger credits
     r'\(clearing\)',
 ]
+
+# Balance-only skips — only applied when the message has NO debit/credit action verb.
+# Many banks append "Available balance Rs. X" or "Avl Bal INR Y" to real transaction
+# confirmations; those must NOT be skipped even though they mention a balance.
+_BALANCE_SKIP_PATTERNS = [
+    r'\bAvailable\s+Bal\b',                        # HDFC "Available Bal in A/c"
+    r'\bbalance\s+(?:is|alert|update|intimation)\b',
+    r'\bavailable\s+balance\b',
+    r'\baccount\s+balance\b',
+    r'\bcurrent\s+balance\b',
+    r'\blow\s+balance\b',
+]
+
+# If any of these action verbs is present the message is a real transaction confirmation
+_TXN_ACTION_RE = re.compile(
+    r'\b(?:debited|credited|deposited|transferred|spent|paid|sent|received)\b',
+    re.IGNORECASE,
+)
 
 _BANK_SENDERS = {
     'HDFC':       ['HDFCBK', 'HDFCBANK', 'HDFC'],
@@ -263,6 +274,12 @@ class SMSParser:
         for pattern in _SKIP_PATTERNS:
             if re.search(pattern, text, re.IGNORECASE):
                 return True
+        # Balance patterns only apply when no real transaction action is present.
+        # Real confirmations include the remaining balance as context — skip those.
+        if not _TXN_ACTION_RE.search(text):
+            for pattern in _BALANCE_SKIP_PATTERNS:
+                if re.search(pattern, text, re.IGNORECASE):
+                    return True
         return False
 
     def _extract_amount(self, text: str) -> Optional[float]:
