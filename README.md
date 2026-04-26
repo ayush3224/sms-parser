@@ -34,9 +34,10 @@ Built for Indian users with HDFC, ICICI, SBI, Axis, Kotak, IDFC FIRST, and other
 ## Features
 
 - **Live SMS capture** — MacroDroid forwards every banking SMS to Railway over the internet; no shared Wi-Fi needed
-- **Smart parsing** — Regex extracts bank, amount, merchant, account, payment mode; Claude Haiku fills gaps for unknown formats
+- **Smart parsing** — Regex extracts bank, amount, merchant, account, payment mode; HDFC `FT-` references → NEFT, IDFC RRN → IMPS; Claude Haiku fills gaps for unknown formats
 - **LLM merchant recovery** — When a stored transaction has no merchant, Claude Haiku reads the raw SMS to find the payee before falling back to the bank name
-- **Skip non-transactions** — Future deductions (`will be deducted`), balance alerts, E-Mandate notifications, and clearing entries are automatically ignored
+- **Payment mode recovery** — Old DB records with null payment_mode are re-parsed from raw SMS at email render time so badges always show correctly
+- **Skip non-transactions** — Future deductions, OTPs, balance alerts, promotional SMS, investment statements, E-Mandate notifications, and clearing entries are automatically ignored
 - **Rich HTML email** — Styled daily summary with per-transaction detail and weekly spend bar chart, sent at 10 AM IST every day
 - **Reliable scheduler** — Daily email runs as an asyncio task inside uvicorn's event loop (no daemon thread issues on Railway)
 - **Dual email delivery** — Resend API (primary, works on Railway) with Gmail SMTP as local fallback
@@ -45,7 +46,7 @@ Built for Indian users with HDFC, ICICI, SBI, Axis, Kotak, IDFC FIRST, and other
 - **Template learning** — Unknown SMS formats are saved to Supabase; `learn_patterns.py` uses Claude Opus to suggest new regex patterns
 - **Supabase storage** — Full transaction history with IST timestamps
 - **Auto storage cleanup** — Deletes oldest records when Supabase free tier hits 80% capacity, retaining last 30 days
-- **Multi-bank support** — HDFC, ICICI (credit & debit cards), SBI, Axis, Kotak, IDFC FIRST, Yes Bank, IndusInd, Paytm, PhonePe, Amazon Pay
+- **Multi-bank support** — HDFC, ICICI (credit & debit cards), SBI, Axis, Kotak, IDFC FIRST, Yes Bank, IndusInd, PNB, Paytm, PhonePe, Amazon Pay, SBM, Zomato, INDmoney
 
 ---
 
@@ -221,16 +222,24 @@ python cli.py --import-file backup.xml
 
 | Bank | Format detected |
 |---|---|
-| HDFC | UPI debit/credit, card spend, UPI Mandate |
+| HDFC | UPI debit/credit, card spend (`Bank Card` → Credit Card), UPI Mandate, fund transfers (`FT-` → NEFT) |
 | ICICI | Credit card (`VM-ICICIT-S`, `VM-ICICIB`), debit card, UPI |
-| IDFC FIRST | UPI debit (`IDFCBK`, `IDFCFB`) |
-| SBI, Axis, Kotak, Yes, IndusInd | Standard debit/credit alerts |
+| IDFC FIRST | Debit/credit with RRN (`IDFCBK`, `IDFCFB`) → IMPS |
+| SBM | Niyo Global Credit Card (`CP-SBMIND-S`) |
+| SBI, Axis, Kotak, Yes, IndusInd, PNB | Standard debit/credit alerts |
+| Zomato | Zomato Money wallet credits (`JK-ZOMATO-S`) |
+| INDmoney | Investment payouts and refunds (`TX-INDDEM-S`) |
+| ITD | Income Tax challan payment confirmations (`VM-ITDCPC-G`) |
 | Any bank | Claude Haiku fallback for unknown formats |
 
 **Automatically skipped (not stored as transactions):**
 - `E-Mandate! Rs.X will be deducted on DD-MM-YY` — future deduction notifications
-- Balance alerts (`low balance`, `available balance`, `account balance`, etc.)
+- `OTP is XXXXXX` / `One-Time Password` — OTP messages
+- Balance alerts: `Available Bal`, `low balance`, `available balance`, `account balance`, etc.
+- Promotional SMS: `Get Rs. X off`, `Tnc Apply`
+- Investment/portfolio statements: NPS balance, NSE trade notifications
 - Clearing / internal ledger entries containing `(clearing)`
+- PNB loan instalment notices (`falling due`)
 
 ---
 

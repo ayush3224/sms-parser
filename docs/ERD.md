@@ -89,22 +89,49 @@ Both tasks are cancelled cleanly on app shutdown.
 **Skip patterns (return `None` without storing):**
 
 ```
-will be (deducted|charged|debited|processed)
-scheduled (for|on)
-balance (is|alert|update|intimation)
-available balance
-account balance
-current balance
-low balance
-(clearing)
+will be (deducted|charged|debited|processed)   — future deductions
+scheduled (for|on)                             — scheduled payments
+falling due                                    — PNB loan instalment notices
+One-Time Password                              — ICICI OTP
+OTP is \d+                                     — HDFC OTP
+Available Bal                                  — HDFC balance-only alerts
+balance (is|alert|update|intimation)           — balance notifications
+available balance  (not followed by Rs/digits) — generic balance alerts
+                                               — note: post-txn "Available balance Rs. X"
+                                               — in IDFC confirmations is NOT skipped
+account balance / current balance / low balance
+Get Rs. X off                                  — promotional discount SMS
+Tnc Apply                                      — promotional T&C SMS
+Investment value in Tier                       — NPS portfolio statements
+traded value for                               — NSE trade notifications
+activated Standing Instruction                 — mandate activations
+(clearing)                                     — internal ledger entries
 ```
 
 **Supported banks (sender shortcode mapping):**
 
-- HDFC: `HD-HDFCBK`, `BW-HDFCBK`, `AD-HDFCBK`, `VM-HDFCBK`
-- ICICI: `VM-ICICIB`, `VM-ICICIT`, `VM-ICICIT-S`, `BW-ICICIB`
-- IDFC FIRST: `VM-IDFCBK`, `AD-IDFCFB`
-- SBI, Axis, Kotak, Yes Bank, IndusInd, Paytm, PhonePe, Amazon Pay
+- HDFC: `*-HDFCBK-*`, `*-HDFCBANK-*`, `*-HDFC-*`
+- ICICI: `*-ICICIB-*`, `*-ICICIBANK-*`, `*-ICICIC-*`, `*-ICICIT-*`
+- IDFC FIRST: `*-IDFCBK-*`, `*-IDFCFB-*`
+- SBI: `*-SBIBK-*`, `*-SBIINB-*`, `*-STATEBK-*`
+- Axis, Kotak, Yes Bank, IndusInd, PNB, Paytm, PhonePe, Amazon Pay
+- SBM: `*-SBMIND-*`, `*-SBMBANK-*` — SBM Niyo Global credit card
+- Zomato: `*-ZOMATO-*` — Zomato Money wallet credits
+- INDmoney: `*-INDDEM-*`, `*-INDMONEY-*` — investment platform payouts
+- ITD: `*-ITDCPC-*` — Income Tax Department challan confirmations
+
+**Payment mode detection:**
+
+| Mode | Trigger |
+|---|---|
+| UPI | `UPI` keyword or `Mandate` |
+| NEFT | `NEFT` keyword or `FT-` prefix (HDFC fund-transfer reference) |
+| IMPS | `IMPS` keyword or `RRN` (IDFC transaction confirmations) |
+| RTGS | `RTGS` keyword |
+| Credit Card | `credit card`, `using ... bank card`, or `Bank Card` |
+| Debit Card | `debit card` |
+| ATM | `ATM` |
+| Net Banking | `net banking` / `netbanking` |
 
 ### 2.4 `src/sms_parser/email_template.py` — Email Builder + Renderer
 

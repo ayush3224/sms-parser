@@ -89,15 +89,20 @@ There is no zero-effort, automatic, consolidated view of daily spending across a
 
 ### 6.2 Transaction Parsing
 
-- Regex patterns cover all major Indian banks: HDFC, ICICI (debit + credit card), IDFC FIRST, SBI, Axis, Kotak, Yes, IndusInd
-- Extracted fields: amount, transaction type (debit/credit), merchant, bank, account last 4 digits, payment mode (UPI / ATM / NEFT / IMPS / Credit Card / Debit Card)
+- Regex patterns cover all major Indian banks: HDFC, ICICI (debit + credit card), IDFC FIRST, SBI, Axis, Kotak, Yes, IndusInd, PNB, Paytm, PhonePe, Amazon Pay, SBM, Zomato, INDmoney
+- Extracted fields: amount, transaction type (debit/credit), merchant, bank, account last 4 digits, payment mode (UPI / ATM / NEFT / IMPS / RTGS / Credit Card / Debit Card / Net Banking)
+- Payment mode detection covers HDFC fund-transfer references (`FT-` prefix → NEFT) and IDFC RRN-based transactions (RRN → IMPS)
 - Claude Haiku fallback for SMS formats not matched by any regex
 - LLM merchant recovery at email render time: for stored transactions missing a merchant, Claude Haiku re-reads the raw SMS to extract the payee before falling back to the bank name
+- Payment mode recovery at email render time: for old DB records with null payment_mode, the raw SMS is re-parsed with current patterns before display
 - SMS automatically skipped (not stored as transactions):
-  - Future deductions: `will be deducted`, `will be charged`, `scheduled for`
-  - Balance alerts: `low balance`, `available balance`, `account balance`, `current balance`
+  - Future deductions: `will be deducted`, `will be charged`, `scheduled for`, `falling due`
+  - Balance alerts: `Available Bal`, `balance is/alert/update`, `available balance`, `account balance`, `current balance`, `low balance`
+  - Promotional SMS: `Get Rs. X off`, `Tnc Apply`
+  - Investment/portfolio statements: NPS balance, NSE trade notifications
+  - OTP messages: `OTP is XXXXXX`, `One-Time Password`
   - Clearing entries: `(clearing)`
-  - E-Mandate confirmations
+  - E-Mandate future deduction notifications
 
 ### 6.3 Daily Summary Email
 
