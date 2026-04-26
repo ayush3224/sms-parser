@@ -35,11 +35,15 @@ _SKIP_PATTERNS = [
     r'\bOne-Time\s+Password\b',                    # ICICI OTP
     r'\bOTP\s+is\s+\d+\b',                        # HDFC OTP
     # Balance-only alerts
+    r'\bAvailable\s+Bal\b',                        # HDFC "Available Bal in A/c"
     r'\bbalance\s+(?:is|alert|update|intimation)\b',
-    r'\bavailable\s+balance\b',
+    r'\bavailable\s+balance\b(?!\s+Rs|\s+[0-9,])', # exclude post-txn balance lines e.g. IDFC
     r'\baccount\s+balance\b',
     r'\bcurrent\s+balance\b',
     r'\blow\s+balance\b',
+    # Promotional / marketing SMS (not transactions)
+    r'\bGet\s+Rs\.?\s*\d+\s+off\b',               # "Get Rs. 350 OFF"
+    r'\bTnc\s+Apply\b',                            # any promo ending with T&C notice
     # Investment / portfolio statements (not cash transactions)
     r'\bInvestment\s+value\s+in\s+Tier\b',         # NPS balance
     r'\btraded\s+value\s+for\b',                   # NSE trade notification
@@ -64,13 +68,14 @@ _BANK_SENDERS = {
     'Amazon Pay': ['AMAZONPAY', 'AMZNPAY'],
     'SBM':        ['SBMIND', 'SBMBANK', 'SBMB'],
     'Zomato':     ['ZOMATO'],
+    'INDmoney':   ['INDDEM', 'INDMONEY'],
     'ITD':        ['ITDCPC'],                       # Income Tax Dept challan SMS
 }
 
 _PAYMENT_MODES = [
     ('UPI',         r'\bUPI\b|\bMandate\b'),
-    ('NEFT',        r'\bNEFT\b'),
-    ('IMPS',        r'\bIMPS\b'),
+    ('NEFT',        r'\bNEFT\b|\bFT-\s*[A-Z0-9]'),  # NEFT and HDFC fund-transfer refs (FT- XXXX)
+    ('IMPS',        r'\bIMPS\b|\bRRN\b'),           # RRN = Retrieval Reference Number used in IMPS
     ('RTGS',        r'\bRTGS\b'),
     # "spent using ICICI Bank Card" / "On HDFC Bank Card" / "using HDFC Credit Card"
     ('Credit Card', r'\bcredit\s+card\b|\busing\s+\w+(?:\s+bank)?\s+card\b|\bBank\s+Card\b'),
@@ -109,6 +114,7 @@ _MERCHANT_NORMALISE = {
     # Local merchants (user-identified)
     'ARTICULTURAL FRU':  'Amma Shop',
     'PAPER AND PIE':     'Paper & Pie',
+    'GROFERSC':          'Blinkit',                 # Grofers rebranded to Blinkit
 }
 
 _MERCHANT_PATTERNS = [
@@ -284,8 +290,10 @@ class SMSParser:
             m = re.search(pattern, text, re.IGNORECASE)
             if m:
                 merchant = m.group(1).strip().rstrip('.')
-                # Strip HDFC card store/branch codes e.g. "FIRSTCRY 2004 DA" → "FIRSTCRY"
+                # Strip HDFC card store codes: "FIRSTCRY 2004 DA" → "FIRSTCRY"
                 merchant = re.sub(r'\s+\d{4}\s+[A-Z]{2,}$', '', merchant).strip()
+                # Strip trailing merchant ID digits: "MYNTRA62947" → "MYNTRA"
+                merchant = re.sub(r'\d+$', '', merchant).strip()
                 if 3 <= len(merchant) <= 50:
                     normalised = _MERCHANT_NORMALISE.get(merchant.upper())
                     return normalised if normalised else merchant
