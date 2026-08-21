@@ -74,7 +74,9 @@ def _send_email_summary(email_data, for_date) -> None:
         log.warning("Failed to send summary email: %s", exc)
 
 
-def main() -> None:
+def build_app():
+    """Build the fully-configured FastAPI app. Used by main() and by
+    `uvicorn main:app` (Railway's auto-detected start command)."""
     # --- validate required env vars up front ---
     for var in ("ANTHROPIC_API_KEY", "SUPABASE_URL", "SUPABASE_KEY"):
         if not os.getenv(var):
@@ -84,10 +86,8 @@ def main() -> None:
     sb_url         = os.environ["SUPABASE_URL"]
     sb_key         = os.environ["SUPABASE_KEY"]
     webhook_secret = os.getenv("WEBHOOK_SECRET") or None
-    port           = int(os.getenv("PORT", "8000"))   # Railway injects PORT
 
     # --- imports here so missing packages give a clear error ---
-    import uvicorn
     from src.sms_parser.agent          import SMSSpendAgent
     from src.sms_parser.models         import SMSMessage
     from src.sms_parser.sms_parser     import SMSParser
@@ -144,13 +144,18 @@ def main() -> None:
         else:
             log.info("SMS received from %s (no transaction parsed)", sms.sender)
 
-    # --- start webhook server (blocking — scheduling runs inside uvicorn's event loop) ---
-    app = create_app(
+    return create_app(
         on_sms=on_sms,
         secret=webhook_secret,
         on_summary=on_summary,
         on_storage_check=on_storage_check,
     )
+
+
+def main() -> None:
+    import uvicorn
+    port = int(os.getenv("PORT", "8000"))   # Railway injects PORT
+    app  = build_app()
     log.info("Starting webhook server on port %d", port)
     uvicorn.run(app, host="0.0.0.0", port=port)
 

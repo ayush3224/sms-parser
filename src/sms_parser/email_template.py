@@ -230,16 +230,21 @@ def build_email_data(
         if not merchant:
             # 3. Last resort: bank name (better than "Unknown")
             merchant = t.bank or "Unknown"
+        payment_mode = t.payment_mode
+        if not payment_mode:
+            sms_text = _extract_sms_text(t.raw_sms or "")
+            payment_mode = _parser._extract_payment_mode(sms_text)
+
         rows.append(EmailRow(
             merchant      = merchant,
             amount        = t.amount,
             txn_type      = "debit",
-            payment_mode  = t.payment_mode or "Other",
+            payment_mode  = payment_mode or "Other",
             bank          = t.bank or "",
             account_last4 = f"XX{t.account_last4}" if t.account_last4 else "",
             time_str      = time_str,
             raw_sms       = _extract_sms_text(t.raw_sms or ""),
-            badge         = _badge(t.payment_mode),
+            badge         = _badge(payment_mode),
         ))
 
     # credit alerts
