@@ -61,9 +61,21 @@ CASES = [
     (False, "Phoenix Market City", None, "IDBI FASTag",      "Dear Customer, Your IDBI BANK NETC FASTag linked vehicle no. KA03NW3612, has been debited with Rs. 120/- at Phoenix Market City on 09-05-2026 14:51"),
     (False, "Blinkit", "Credit Card", "HDFC card GROFERSI",  "Spent Rs.260 On HDFC Bank Card 8229 At GROFERSI6108222 On 2026-08-23:12:30:44.Not You? To Block"),
     (False, "Amma Shop", "Credit Card", "HDFC card dotted",  "Spent Rs.770 On HDFC Bank Card 8229 At ..ARTICULTURAL FRU_ On 2026-04-26:20:15:16.Not You?"),
-    (False, "Amazon Pay", "Credit Card", "ICICI card spend", "INR 3,276.00 spent using ICICI Bank Card XX3008 on 19-Apr-26 on AMAZON PAY IN G. Avl Limit: INR 9,14,593.67."),
+    (False, "Amazon", "Credit Card", "ICICI card spend", "INR 3,276.00 spent using ICICI Bank Card XX3008 on 19-Apr-26 on AMAZON PAY IN G. Avl Limit: INR 9,14,593.67."),
     (False, "Swati Jha", "UPI", "HDFC UPI multiline",        "Sent Rs.100.00\nFrom HDFC Bank A/C *1029\nTo Swati Jha\nOn 05/04/26\nRef 121125016650\nNot You?\nCall 18002586161/SMS BLOCK UPI to 7308080808"),
     (False, "Swati Jha", "IMPS", "IDFC debit not skipped",   "Your A/c XX5865 debited by Rs. 10.00 on 05/04/26; Swati Jha credited. RRN 646195971777. Available balance Rs. 3,54,576.62. Team IDFC FIRST Bank"),
+
+    # ── Second audit round (user-reviewed, Sept 2026) ────────────────────
+    (True, None, None, "PNB EMI UMRN dup",   "PAYMENT ALERT! \nINR 39466.00 deducted from HDFC Bank A/C No 1029 towards PUNJAB NATIONAL BANK UMRN: HDFC7012206251001058"),
+    (True, None, None, "SBI IT refund dup",  "Dear Customer, For PAN XXXXXX146N, An IT Refund amount of Rs 93060 for AY-2026-27 has been credited to your account XXXXXXXXXX1029 on 2026-08-21. -SBI"),
+    (False, "Anthropic", "Credit Card", "USD card spend",    "USD 5.90 spent using ICICI Bank Card XX3008 on 22-Aug-26 on ANTHROPIC. Avl Limit: INR 9,15,832.31. If not you, call 1800 2662/SMS BLOCK 3008 to 9215676766."),
+    (False, "Amazon", "Credit Card", "ICICI new at-format",  "Rs 5,499.00 spent on ICICI Bank Card XX3008 on 24-Aug-26 at AMAZON PAY IN G. Avl Lmt: Rs 9,10,320.05. To dispute, call 18002662/SMS BLOCK 3008 to 9215676766. To convert this txn to EMI give a missed call on 992"),
+    (False, "Amazon", "Credit Card", "ICICI apay variant E", "INR 3,461.24 spent using ICICI Bank Card XX3008 on 05-May-26 on AMAZON PAY IN E. Avl Limit: INR 9,01,899.05. If not you, call 1800 2662/SMS BLOCK 3008 to 9215676766."),
+    (False, "79 Nhu Y", "Credit Card", "SBM digit-start",    "Dear Customer, You have paid INR 1147.83 at 79 NHU Y                 HO through your SBM Niyo Global Credit Card. In case you have not initiated this transaction, report at customercare@sbmbank.co.in"),
+    (False, "Cu Chi Tunnels", "Credit Card", "SBM K DTLS",   "Dear Customer, You have paid INR 8198.80 at K DTLS DIA DAO CU CHI    HO through your SBM Niyo Global Credit Card. In case you have not initiated this transaction, report at customercare@sbmbank.co.in"),
+    (False, "Grab", "Credit Card", "SBM reversal credit",    "Dear Customer, reversal of INR 3.59 is credited to your SBM Niyo Global Credit Card due to failed transaction at GRAB                     00   . Available limit is INR 54000.00 SBM Bank India"),
+    (False, "Card Bill Payment", None, "HDFC card credited", "HDFC Bank Cardmember, Payment of Rs 30000 was credited to your card ending 8229 on 29/AUG/2026."),
+    (False, "AVG Antivirus", "Credit Card", "AVG spend",     "INR 900.00 spent using ICICI Bank Card XX3008 on 12-Apr-26 on AVG. Avl Limit: INR 8,83,170.46. If not you, call 1800 2662/SMS BLOCK 3008 to 9215676766."),
 ]
 
 
