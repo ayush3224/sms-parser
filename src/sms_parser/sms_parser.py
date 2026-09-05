@@ -44,7 +44,39 @@ _SKIP_PATTERNS = [
     r'\bactivated\s+Standing\s+Instruction\b',
     # Bank "clearing" / internal ledger credits
     r'\(clearing\)',
+    # Mandate setup notifications (amount reserved, not yet debited)
+    r'\bMandate\s+Set\b',
+    # Card limit change notices
+    r'\bLimit\s+modified\b',
+    r'\bincreasing\s+the\s+limit\b',
+    # Declined / failed transactions
+    r'\bDeclined\b',
+    # Broker / exchange / investment statements
+    r'\breported\s+your\s+Fund\s+bal\b',           # NSE broker fund balance
+    r'\bBSE\s+Trade\s+Confirmation\b',
+    r'\bpassbook\s+balance\b',                     # EPF statement
+    r'\be-Voting\b',                               # CDSL voting notice
+    r'\bis\s+due\s+for\s+debit\b',                 # SIP due notice (future)
+    # Insurance quotations (not payments)
+    r'\bQuotation\b',
+    # Telecom duplicates — the bank-side SMS records the actual payment
+    r'\bAirtel\s+Black\b',                         # bill generated / receipt notices
+    r'\bInternational\s+Roaming\s+pack\b',
+    r'\bpayment\s+will\s+be\s+updated\b',
+    r'\byour\s+multiple\s+Airtel\s+connections\b',
+    # Loan deposit acknowledgements (debit already captured bank-side)
+    r'\bThanks\s+for\s+depositing\b',
+    # HDFC "PAYMENT ALERT ... UMRN" mandate alert — duplicate of the ACH debit
+    # SMS that arrives the same day (monthly PNB loan EMI double-count)
+    r'PAYMENT\s+ALERT[\s\S]*?\bUMRN\b',
+    # SBI IT-refund confirmation — duplicate of the HDFC NEFT deposit SMS
+    r'An\s+IT\s+Refund\s+amount\s+of\s+Rs',
+    # ITD challan confirmation — duplicate of the bank-side UPI debit ("To CBDT")
+    r'\bChallan\s+payment\b[\s\S]*?successfully\s+paid',
 ]
+
+# Approximate USD→INR rate for foreign-currency card SMS ("USD 5.90 spent using ...")
+_USD_INR_RATE = 95.0
 
 # Balance-only skips — only applied when the message has NO debit/credit action verb.
 # Many banks append "Available balance Rs. X" or "Avl Bal INR Y" to real transaction
@@ -81,17 +113,18 @@ _BANK_SENDERS = {
     'Zomato':     ['ZOMATO'],
     'INDmoney':   ['INDDEM', 'INDMONEY'],
     'ITD':        ['ITDCPC'],                       # Income Tax Dept challan SMS
+    'IDBI':       ['WLIDBI', 'IDBIBK'],             # IDBI FASTag
 }
 
 _PAYMENT_MODES = [
-    ('UPI',         r'\bUPI\b|\bMandate\b'),
+    ('UPI',         r'\bUPI\b|\bMandate\b|SBM_UPI'),   # SBM_UPI: SBM "Info:SBM_UPI_..." credits
     ('NEFT',        r'\bNEFT\b|\bFT-\s*[A-Z0-9]'),  # NEFT and HDFC fund-transfer refs (FT- XXXX)
     ('IMPS',        r'\bIMPS\b|\bRRN\b'),           # RRN = Retrieval Reference Number used in IMPS
     ('RTGS',        r'\bRTGS\b'),
     # "spent using ICICI Bank Card" / "On HDFC Bank Card" / "using HDFC Credit Card"
     ('Credit Card', r'\bcredit\s+card\b|\busing\s+\w+(?:\s+bank)?\s+card\b|\bBank\s+Card\b'),
     ('Debit Card',  r'\bdebit\s+card\b'),
-    ('ATM',         r'\bATM\b'),
+    ('ATM',         r'\bATM\b|ATMISS'),             # ATMISS: SBM international ATM withdrawal code
     ('Net Banking', r'\bnet\s*banking\b|\bnetbanking\b'),
 ]
 
@@ -100,7 +133,11 @@ _MERCHANT_NORMALISE = {
     'AMAZONIN':          'Amazon India',
     'AMZNIN':            'Amazon India',
     'AMZNMKTP':          'Amazon',
-    'AMAZON PAY IN G':   'Amazon Pay',
+    # ICICI truncates the Amazon Pay India descriptor at varying points;
+    # user preference: default these card spends to "Amazon"
+    'AMAZON PAY IN G':   'Amazon',
+    'AMAZON PAY IN E':   'Amazon',
+    'AMAZON PAY IN':     'Amazon',
     'FLIPKART':          'Flipkart',
     'FIRSTCRY':          'FirstCry',
     'MYNTRA':            'Myntra',
@@ -126,25 +163,85 @@ _MERCHANT_NORMALISE = {
     'ARTICULTURAL FRU':  'Amma Shop',
     'PAPER AND PIE':     'Paper & Pie',
     'GROFERSC':          'Blinkit',                 # Grofers rebranded to Blinkit
+    'GROFERSI':          'Blinkit',
+    'UBER INDIA SYSTEMS PRIVAT': 'Uber',
+    'LICIOUS':           'Licious',
+    'HOME TOWN SUPER':   'Home Town Super Market',
+    'HOME TOWN SUPER MARKET': 'Home Town Super Market',
+    'GRAB':              'Grab',
+    'COCHIN ZEN HOTEL':  'Cochin Zen Hotel',
+    # Vietnam trip merchants (user-identified)
+    '79 NHU Y':          '79 Nhu Y',
+    'ACV DA NANG':       'Da Nang Airport (ACV)',
+    'K DTLS DIA DAO CU CHI': 'Cu Chi Tunnels',
+    'HAI SAN HOANG GIA-LTT': 'Hai San Hoang Gia',
+    'THE PEARL HOI AN':  'The Pearl Hoi An',
+    'CTYCP DVHK TASECO DA NANG': 'Taseco Da Nang',
+    # Subscriptions
+    'ANTHROPIC':         'Anthropic',
+    'AVG':               'AVG Antivirus',
+    'NETFLIX':           'Netflix',
 }
+
+# Known SMS templates where the merchant is a fixed label, not extractable text.
+# Checked before the generic _MERCHANT_PATTERNS.
+_MERCHANT_LITERALS = [
+    (r'RECEIVED\s+TOWARDS\s+YOUR\s+CREDIT\s+CARD',    'Card Bill Payment'),
+    (r'credited\s+to\s+your\s+card\s+ending',         'Card Bill Payment'),
+    (r'Payment\s+credit\s+received\s+of\s+INR',       'Card Bill Payment'),
+    (r'ITDTAX\s+REFUND',                              'Income Tax Refund'),
+    (r'\bIT\s+Refund\s+amount\b',                     'Income Tax Refund'),
+    (r'Rev-IMPS',                                     'IMPS Reversal'),
+    (r'\bTD\s+FUND\b',                                'Term Deposit'),
+    (r'infor\s*:\s*IFT/',                             'Fund Transfer'),
+    (r'ATMISS',                                       'ATM Withdrawal'),
+    (r'ATM\s+Cash\s+Withdrawal\s+Charges',            'ATM Charges'),
+    (r'Info:\s*RFX',                                  'Forex Remittance'),
+    (r'Nippon\s+India\s+MF',                          'Nippon India MF'),
+    (r'SIP\s+Purchase\s+of\s+Rs',                     'ICICI Prudential MF'),
+    (r'added\s+to\s+Zomato\s+Money',                  'Zomato'),
+    (r'refunded\s+to\s+your\s+Zomato\s+Money',        'Zomato Refund'),
+    (r'for\s+your\s+Zomato\s+order',                  'Zomato Refund'),
+    (r'TATA\s+AIA\s+Life\s+policy',                   'TATA AIA Life Insurance'),
+    (r'Challan\s+payment',                            'Income Tax'),
+    (r'INDstocks\s+Wallet',                           'INDmoney'),
+]
+
+# Account-to-account transfers: merchant becomes "Transfer to A/c <last4>"
+_TRANSFER_PATTERNS = [
+    r'To\s+A/c\s+[xX*]+(\d{4})',                      # "IMPS ... To A/c xxxxxxxxxx8064"
+    r'to\s+a/c\s+\*+(\d{4})',                         # "debited from a/c *1029 ... to a/c **8702"
+]
 
 _MERCHANT_PATTERNS = [
     # HDFC card: "Spent Rs.X On HDFC Bank Card 8229 At ..MERCHANTNAME_"
     r'At\s+\.+([A-Z][A-Za-z0-9\s&\'\-]+?)(?:_|\s+On\s+\d{4})',
+    # HDFC card plain: "On HDFC Bank Card 8229 At GROFERSI6108222 On 2026-08-23"
+    # (must run before the generic "To X" pattern, which would grab "To Block+Reissue")
+    r'On\s+HDFC\s+Bank\s+Card\s+\d+\s+At\s+([A-Za-z0-9&\' ]{3,40}?)\s+On\b',
     # "Mandate Set Rs.X For MERCHANT From HDFC" (Google Play auto-pay etc.) — multiline SMS
     r'\bMandate\s+Set\b[\s\S]+?For\s+([A-Za-z][A-Za-z0-9\s]+?)\s+From\b',
-    # "paid INR 271.00 at AMAZONIN through your Card" (SBM / card SMS)
-    r'\bpaid\s+(?:INR|Rs\.?|₹)\s*[0-9,.]+\s+at\s+([A-Z][A-Za-z0-9]{2,30})\s+(?:through|via|using)\b',
+    # "paid INR 271.00 at AMAZONIN through your Card" — SBM card SMS; merchant may be
+    # multi-word with padded spaces ("at COCHIN ZEN HOTEL         HO through") and
+    # may start with a digit ("at 79 NHU Y  HO through")
+    r'\bpaid\s+(?:INR|Rs\.?|₹)\s*[0-9,.]+\s+at\s+([A-Za-z0-9][A-Za-z0-9*&\'\-\. ]{2,50}?)\s+through\b',
+    # SBM reversal: "reversal of INR 3.59 ... due to failed transaction at GRAB"
+    r'failed\s+transaction\s+at\s+([A-Za-z0-9 ]{3,30}?)(?:\s{2,}|\s*$)',
+    # IDBI FASTag: "debited with Rs. 120/- at Phoenix Market City on"
+    r'FASTag[\s\S]*?debited\s+with\s+Rs\.?\s*[0-9/,.\-]+\s+at\s+([A-Za-z0-9 ]{3,40}?)\s+on\b',
     # "Rs. 25.88 added to Zomato Money" — wallet cashback / refund credits
     r'\badded\s+to\s+([A-Za-z]+(?:\s+Money|\s+Wallet)?)\b',
     # "Challan payment" → Income Tax
     r'\b(Challan\s+payment)\b',
-    # "To INDmoney 06/04/26" or "To Swati Jha Ref"
-    r'[Tt]o\s+([A-Z][A-Za-z][A-Za-z0-9\s&\-\.\']{1,38}?)(?:\s+[0-9]{2}/[0-9]{2}|\s+Ref\b|\s+Not\b|\s+UPI\b|\s+via\b|\.|$)',
+    # Both ICICI card variants: "on 06-Apr-26 on AMAZON PAY IN G. Avl Limit" and
+    # "on 24-Aug-26 at AMAZON PAY IN G. Avl Lmt" — must run before the generic
+    # "To X" pattern, which would grab "To dispute" / "To convert this txn to EMI"
+    r'on\s+[0-9]{2}-[A-Za-z]{3}-[0-9]{2}\s+(?:on|at)\s+([A-Z][A-Za-z0-9\s&/\.]{2,40}?)(?:\.\s+Avl\b|\.\s+If\b|$)',
+    # "To INDmoney 06/04/26" or "To Swati Jha\nOn 05/04/26" — capture must not cross
+    # newlines (was producing "Swati Jha\nOn" merchants)
+    r'[Tt]o\s+([A-Z][A-Za-z][A-Za-z0-9 &\-\.\']{1,38}?)(?:\s+[0-9]{2}/[0-9]{2}|\s+Ref\b|\s+Not\b|\s+UPI\b|\s+via\b|\n|\.|$)',
     # "at/to MERCHANT" generic
     r'(?:at|to)\s+([A-Z][A-Za-z0-9\s&\-\.\']{2,40}?)(?:\s+at\b|\s+on\b|\s+for\b|\s+via\b|\s+Ref\b|\s+Info|\.|$)',
-    # "spent using ICICI Bank Card XX3008 on 06-Apr-26 on AMAZON PAY IN G"
-    r'on\s+[0-9]{2}-[A-Za-z]{3}-[0-9]{2}\s+on\s+([A-Z][A-Za-z0-9\s&/\.]{2,40}?)(?:\.\s+Avl\b|\.\s+If\b|$)',
     # "For INDmoney mandate" (E-Mandate confirmation)
     r'\bFor\s+([A-Z][A-Za-z0-9\s&\-\.]{2,40}?)\s+mandate\b',
     r'paid\s+to\s+([A-Za-z][A-Za-z0-9\s&\-\.\']{2,40}?)(?:\s+at\b|\s+via\b|\s+Ref\b|\s+UPI\b|\.|$)',
@@ -283,6 +380,12 @@ class SMSParser:
         return False
 
     def _extract_amount(self, text: str) -> Optional[float]:
+        # Foreign-currency card spends ("USD 5.90 spent using ICICI Bank Card"):
+        # must be handled before INR patterns, which would otherwise match the
+        # "Avl Limit: INR X" credit limit as the amount.
+        m = re.search(r'\bUSD\s*([0-9]+(?:\.[0-9]{1,2})?)\s+spent\b', text, re.IGNORECASE)
+        if m:
+            return round(float(m.group(1)) * _USD_INR_RATE, 2)
         for pattern in _AMOUNT_PATTERNS:
             m = re.search(pattern, text, re.IGNORECASE)
             if m:
@@ -303,10 +406,27 @@ class SMSParser:
         return TransactionType.UNKNOWN
 
     def _extract_merchant(self, text: str) -> Optional[str]:
+        # 1. Known fixed-label templates (card bill payments, refunds, MF purchases …)
+        for pattern, label in _MERCHANT_LITERALS:
+            if re.search(pattern, text, re.IGNORECASE):
+                return label
+
+        # 2. Account-to-account transfers
+        for pattern in _TRANSFER_PATTERNS:
+            m = re.search(pattern, text)
+            if m:
+                return f"Transfer to A/c {m.group(1)}"
+
+        # 3. Generic extraction patterns
         for pattern in _MERCHANT_PATTERNS:
             m = re.search(pattern, text, re.IGNORECASE)
             if m:
                 merchant = m.group(1).strip().rstrip('.')
+                # Keep only the segment before padded space runs:
+                # "COCHIN ZEN HOTEL         HO" → "COCHIN ZEN HOTEL"
+                merchant = re.split(r'\s{2,}', merchant)[0].strip()
+                # Drop location/ID suffix after '*': "Grab* A-9BUSWUOWWID9AV" → "Grab"
+                merchant = re.sub(r'\*.*$', '', merchant).strip()
                 # Strip HDFC card store codes: "FIRSTCRY 2004 DA" → "FIRSTCRY"
                 merchant = re.sub(r'\s+\d{4}\s+[A-Z]{2,}$', '', merchant).strip()
                 # Strip trailing merchant ID digits: "MYNTRA62947" → "MYNTRA"
