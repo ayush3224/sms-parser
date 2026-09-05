@@ -71,6 +71,8 @@ _SKIP_PATTERNS = [
     r'PAYMENT\s+ALERT[\s\S]*?\bUMRN\b',
     # SBI IT-refund confirmation — duplicate of the HDFC NEFT deposit SMS
     r'An\s+IT\s+Refund\s+amount\s+of\s+Rs',
+    # ITD challan confirmation — duplicate of the bank-side UPI debit ("To CBDT")
+    r'\bChallan\s+payment\b[\s\S]*?successfully\s+paid',
 ]
 
 # Approximate USD→INR rate for foreign-currency card SMS ("USD 5.90 spent using ...")

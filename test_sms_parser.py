@@ -49,7 +49,7 @@ CASES = [
     (False, "Zomato Refund", None, "Zomato order refund",    "Refund of Rs. 307.38 for your Zomato order from Olio - The Wood Fired Pizzeria has been initiated"),
     (False, "TATA AIA Life Insurance", None, "Policy debit", "Ayush Varma payment of Rs.1929 for your TATA AIA Life policy no. C222716282 has been successfully debited"),
     (False, "IMPS Reversal", "IMPS", "IMPS reversal",        "Update! INR 5,000.00 deposited in HDFC Bank A/c XX1029 on 01-MAY-26 for Rev-IMPS-612155478550-Swati Jha-ESFB"),
-    (False, "Income Tax", None, "ITD challan",               "Dear User,\nChallan payment of Rs. 5610 against PAN/TAN AIXXXXXX6N for Assessment Year 2025 has been successfully paid.\ne-Filing, ITD."),
+    (True, None, None, "ITD challan dup",                    "Dear User,\nChallan payment of Rs. 5610 against PAN/TAN AIXXXXXX6N for Assessment Year 2025 has been successfully paid.\ne-Filing, ITD."),
 
     # ── Account transfers ────────────────────────────────────────────────
     (False, "Transfer to A/c 8064", "IMPS", "HDFC IMPS out", "IMPS INR 54,500.00 sent from HDFC Bank A/c XX1029 on 31-08-26 To A/c xxxxxxxxxx8064 Ref-624331431734"),
